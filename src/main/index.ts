@@ -9,6 +9,7 @@ import type {
   GlobalSettings,
   SavePatResult,
 } from '@shared/types'
+import { DoubaoAdapter } from './checkin/doubao'
 import { QoderAdapter } from './checkin/qoder'
 import { TraeAdapter } from './checkin/trae'
 import type { Adapter } from './checkin/types'
@@ -18,7 +19,7 @@ import { Logger } from './logger'
 import { Scheduler } from './scheduler'
 import { Store } from './store'
 import { TrayController } from './tray'
-import { checkForUpdates, initUpdater } from './updater'
+import { checkForUpdates, initUpdater, setAllowPrerelease } from './updater'
 import { WindowManager } from './windows'
 
 app.setAppUserModelId('com.xichen.autocredit')
@@ -93,6 +94,7 @@ function bootstrap(): void {
       qoder: new QoderAdapter('qoder', 'global', deps),
       'qoder-cn': new QoderAdapter('qoder-cn', 'cn', deps),
       workbuddy: new WorkBuddyAdapter(deps),
+      doubao: new DoubaoAdapter(deps),
     }
 
     windows = new WindowManager({
@@ -144,6 +146,7 @@ function bootstrap(): void {
 
     initUpdater({
       logger,
+      allowPrerelease: store.settings.allowPrerelease,
       onBeforeInstall: () => windows.setQuitting(true),
     })
 
@@ -173,7 +176,15 @@ function bootstrap(): void {
       const patch = sanitizeSettings(rawPatch)
       if (!Object.keys(patch).length) return
       store.updateSettings(patch)
+      if (patch.developerMode === false && store.apps.doubao.enabled) {
+        store.updateApp('doubao', { enabled: false })
+        logger.info('开发者模式已关闭，豆包签到已停用', 'doubao')
+      }
       if (patch.autoLaunch !== undefined) applyLoginItem(patch.autoLaunch)
+      if (patch.allowPrerelease !== undefined) {
+        setAllowPrerelease(patch.allowPrerelease)
+        logger.info(patch.allowPrerelease ? '已开启接收 dev 版本更新' : '已关闭接收 dev 版本更新')
+      }
       if (patch.masterEnabled !== undefined) {
         logger.info(patch.masterEnabled ? '自动签到已开启' : '自动签到已暂停')
       }
@@ -188,6 +199,10 @@ function bootstrap(): void {
       if (!id) return
       const patch = sanitizeAppPatch(rawPatch)
       if (!Object.keys(patch).length) return
+      if (id === 'doubao' && patch.enabled === true && !store.settings.developerMode) {
+        logger.warn('豆包签到属于实验功能，请先在设置中开启开发者模式', id)
+        return
+      }
       store.updateApp(id, patch)
       const meta = APP_META[id]
       if (patch.enabled !== undefined) {
@@ -352,6 +367,8 @@ function sanitizeSettings(input: unknown): Partial<GlobalSettings> {
   if (typeof raw.logRetentionDays === 'number' && Number.isFinite(raw.logRetentionDays)) {
     patch.logRetentionDays = Math.min(90, Math.max(1, Math.round(raw.logRetentionDays)))
   }
+  if (typeof raw.developerMode === 'boolean') patch.developerMode = raw.developerMode
+  if (typeof raw.allowPrerelease === 'boolean') patch.allowPrerelease = raw.allowPrerelease
   return patch
 }
 

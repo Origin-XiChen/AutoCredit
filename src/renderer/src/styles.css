@@ -756,6 +756,10 @@ a {
   background: #1f9e5f;
 }
 
+.glyph-doubao {
+  background: #4b5ce0;
+}
+
 .glyph-badge {
   position: absolute;
   right: -4px;
@@ -1134,6 +1138,11 @@ a {
   color: #1f9d4d;
 }
 
+.tag-doubao {
+  background: rgba(75, 92, 224, 0.13);
+  color: #4b5ce0;
+}
+
 .tag-system {
   background: rgba(120, 120, 128, 0.12);
   color: var(--text-3);
@@ -1440,6 +1449,16 @@ a {
   font-weight: 550;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+.app-note {
+  margin: 0;
+  padding: 9px 12px;
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text-2);
+  font-size: 11px;
+  line-height: 1.5;
 }
 
 .auto-auth-row {

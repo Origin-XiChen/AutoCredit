@@ -1,6 +1,6 @@
 # AutoCredit
 
-AutoCredit 是一个 Windows 桌面小工具，用于每天在 Trae、Qoder、Qoder CN、WorkBuddy 上静默签到并领取积分。
+AutoCredit 是一个 Windows 桌面小工具，用于每天在 Trae、Qoder、Qoder CN、WorkBuddy 上静默签到并领取积分。另有一个默认隐藏的豆包实验功能，可在设置中开启开发者模式后使用。
 
 > 本项目仅供个人使用，与 Trae、Qoder、WorkBuddy 及其所属公司没有任何关联，也未获得其官方认可或授权。
 
@@ -25,6 +25,9 @@ AutoCredit 是一个 Windows 桌面小工具，用于每天在 Trae、Qoder、Qo
 | Qoder | 在设置中填写个人访问令牌（PAT） |
 | Qoder CN | 在设置中填写个人访问令牌（PAT） |
 | WorkBuddy | 读取本机 WorkBuddy 登录态 |
+| 豆包（实验） | 启动本机豆包客户端并通过调试端口模拟点击；默认隐藏，需在设置中开启开发者模式 |
+
+豆包签到属于实验功能，依赖本机已登录的豆包桌面端，可能随客户端更新失效。
 
 ## 开发与打包
 
@@ -40,6 +43,7 @@ npm run dist       # 打包 Windows 安装包，产物在 release/
 ## 更新与卸载
 
 - 安装版启动后会自动检查 GitHub Releases，发现新版本时在后台下载并提示重启安装；也可以从托盘菜单「检查更新…」手动检查
+- 设置 → 关于中可开启「接收 dev 版本」，开启后会同时检查预发布版本
 - 安装包为标准 NSIS 安装程序，卸载可通过 Windows「设置 → 应用」或安装目录下的 `Uninstall AutoCredit.exe`
 - 卸载默认保留本机配置与加密令牌，重新安装后可继续使用
 

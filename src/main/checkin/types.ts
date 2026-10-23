@@ -1,4 +1,4 @@
-import type { AppId, DetectResult } from '@shared/types'
+import type { AppId, DetectResult, RunStatus } from '@shared/types'
 import type { Store } from '../store'
 
 export type OutcomeStatus =
@@ -23,6 +23,7 @@ export interface ProbeResult extends Outcome {
 export interface Readiness {
   ready: boolean
   message: string
+  status?: RunStatus
 }
 
 export interface Adapter {

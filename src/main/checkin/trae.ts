@@ -40,6 +40,14 @@ function storageCandidates(): string[] {
   return roots.flatMap((root) => names.map((name) => join(root, name, 'User', 'globalStorage', 'storage.json')))
 }
 
+/** 国际版 trae.ai 没有每日签到，只有中国版 trae.cn 才需要签到。 */
+function isInternational(info: TraeStorageInfo): boolean {
+  if (info.auth.host) return /trae\.ai/i.test(info.auth.host)
+  return !/[\\/](Trae CN|TRAE SOLO CN)[\\/]/.test(info.source)
+}
+
+const INTERNATIONAL_MESSAGE = '检测到 Trae 国际版（trae.ai），国际版没有每日签到，无需签到'
+
 function decryptAuthValue(value: string): TraeAuth {
   const buffer = Buffer.from(value, 'base64')
   const header = buffer.subarray(0, 6)
@@ -67,6 +75,7 @@ function loadStorage(): TraeStorageInfo | undefined {
     .filter((path) => existsSync(path))
     .sort((a, b) => statSync(b).mtimeMs - statSync(a).mtimeMs)
 
+  const infos: TraeStorageInfo[] = []
   for (const path of candidates) {
     try {
       const storage = JSON.parse(readFileSync(path, 'utf8')) as Record<string, unknown>
@@ -94,12 +103,12 @@ function loadStorage(): TraeStorageInfo | undefined {
       const ideVersion =
         typeof storage['iCubeLastVersion'] === 'string' ? (storage['iCubeLastVersion'] as string) : undefined
 
-      return { auth, deviceId, machineId, ideVersion, source: path }
+      infos.push({ auth, deviceId, machineId, ideVersion, source: path })
     } catch {
       // try the next client
     }
   }
-  return undefined
+  return infos.find((info) => !isInternational(info)) ?? infos[0]
 }
 
 function deviceType(): string {
@@ -191,6 +200,9 @@ export class TraeAdapter implements Adapter {
         message: '未找到本机 Trae 登录态，请先打开并登录 Trae 客户端',
       }
     }
+    if (isInternational(info)) {
+      return { ready: false, status: 'unavailable', message: INTERNATIONAL_MESSAGE }
+    }
     if (info.auth.refreshExpiredAt && info.auth.refreshExpiredAt < Date.now()) {
       return { ready: false, message: 'Trae 登录态已过期，请重新登录客户端' }
     }
@@ -201,6 +213,9 @@ export class TraeAdapter implements Adapter {
     const info = loadStorage()
     if (!info) {
       return { ok: false, message: '未找到本机 Trae 登录态，请先打开并登录 Trae 客户端' }
+    }
+    if (isInternational(info)) {
+      return { ok: true, message: INTERNATIONAL_MESSAGE }
     }
     try {
       const probe = await this.probe()
@@ -220,6 +235,9 @@ export class TraeAdapter implements Adapter {
     const info = loadStorage()
     if (!info) {
       return { checkedIn: false, status: 'needs-setup', message: '未找到本机 Trae 登录态' }
+    }
+    if (isInternational(info)) {
+      return { checkedIn: false, status: 'unavailable', message: INTERNATIONAL_MESSAGE }
     }
     const host = info.auth.host || 'https://api.trae.cn'
     try {
@@ -269,6 +287,9 @@ export class TraeAdapter implements Adapter {
     const info = loadStorage()
     if (!info) {
       return { status: 'needs-setup', message: '未找到本机 Trae 登录态，请先登录 Trae 客户端' }
+    }
+    if (isInternational(info)) {
+      return { status: 'unavailable', message: INTERNATIONAL_MESSAGE }
     }
     const host = info.auth.host || 'https://api.trae.cn'
     try {

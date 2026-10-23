@@ -252,6 +252,7 @@ export default function App() {
             ) : page === 'logs' ? (
               <LogsPage
                 logs={logs}
+                developerMode={state.settings.developerMode}
                 onClear={clearLogs}
                 onExport={exportLogs}
               />

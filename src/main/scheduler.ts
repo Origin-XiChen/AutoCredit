@@ -1,4 +1,4 @@
-import { APP_META, APP_ORDER } from '@shared/constants'
+import { APP_META, visibleAppIds } from '@shared/constants'
 import type { AppId, RunStatus } from '@shared/types'
 import type { Adapter, Outcome, ProbeResult } from './checkin/types'
 import { isTimeReached, localDateKey } from './date'
@@ -71,7 +71,7 @@ export class Scheduler {
   }
 
   async probeAll(ids?: AppId[]): Promise<void> {
-    const targets = ids && ids.length ? ids : [...APP_ORDER]
+    const targets = ids && ids.length ? ids : this.activeAppIds()
     await this.enqueue(async () => {
       this.rollDate()
       this.options.logger.info(
@@ -95,7 +95,10 @@ export class Scheduler {
   }
 
   async runNow(ids?: AppId[]): Promise<void> {
-    const requested = ids && ids.length ? ids : APP_ORDER.filter((id) => this.options.store.apps[id].enabled)
+    const requested =
+      ids && ids.length
+        ? ids
+        : this.activeAppIds().filter((id) => this.options.store.apps[id].enabled)
     const targets = requested.filter((id) => this.options.store.apps[id].enabled)
     if (!targets.length) {
       this.options.logger.warn('没有可签到或已启用的程序')
@@ -109,7 +112,7 @@ export class Scheduler {
         if (!readiness.ready) {
           const today = localDateKey()
           this.options.store.updateRuntime(id, {
-            status: readinessStatus(id),
+            status: readiness.status ?? readinessStatus(id),
             message: readiness.message,
             lastAttemptDate: today,
             lastAttemptAt: new Date().toISOString(),
@@ -171,10 +174,14 @@ export class Scheduler {
     return false
   }
 
+  private activeAppIds(): AppId[] {
+    return visibleAppIds(this.options.store.settings)
+  }
+
   private dueApps(): AppId[] {
     const { store } = this.options
     if (!store.settings.masterEnabled) return []
-    return APP_ORDER.filter((id) => {
+    return this.activeAppIds().filter((id) => {
       if (!store.apps[id].enabled) return false
       if (this.doneToday(id)) return false
       if (!isTimeReached(this.scheduleTime(id))) return false
@@ -196,7 +203,7 @@ export class Scheduler {
       const readiness = this.options.adapters[id].readiness()
       if (!readiness.ready) {
         this.options.store.updateRuntime(id, {
-          status: readinessStatus(id),
+          status: readiness.status ?? readinessStatus(id),
           message: readiness.message,
           lastAttemptDate: today,
           lastAttemptAt: new Date().toISOString(),
@@ -401,5 +408,5 @@ export class Scheduler {
 }
 
 function readinessStatus(id: AppId): RunStatus {
-  return id === 'qoder' || id === 'qoder-cn' ? 'needs-setup' : 'needs-auth'
+  return id === 'qoder' || id === 'qoder-cn' || id === 'doubao' ? 'needs-setup' : 'needs-auth'
 }

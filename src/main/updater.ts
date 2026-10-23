@@ -4,12 +4,19 @@ import type { Logger } from './logger'
 
 interface UpdaterOptions {
   logger: Logger
+  allowPrerelease: boolean
   onBeforeInstall: () => void
 }
 
 let manualCheck = false
 
+/** 是否接收预发布（dev / beta）版本，由设置中的开关控制。 */
+export function setAllowPrerelease(value: boolean): void {
+  autoUpdater.allowPrerelease = value
+}
+
 export function initUpdater(options: UpdaterOptions): void {
+  autoUpdater.allowPrerelease = options.allowPrerelease
   if (!app.isPackaged) return
 
   autoUpdater.autoDownload = true

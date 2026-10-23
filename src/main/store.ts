@@ -188,6 +188,7 @@ export class Store {
         qoder: this.hasPat('qoder'),
         'qoder-cn': this.hasPat('qoder-cn'),
         workbuddy: false,
+        doubao: false,
       },
       version: app.getVersion(),
       dataDir: this.dataDir,

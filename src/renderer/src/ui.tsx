@@ -1,5 +1,5 @@
 import type { AppId, BootstrapState, RunStatus } from '@shared/types'
-import { APP_META } from '@shared/constants'
+import { APP_META, visibleAppIds } from '@shared/constants'
 
 export function IconHome({ size = 18, className }: { size?: number; className?: string }) {
   return (
@@ -164,6 +164,7 @@ const GLYPHS: Record<AppId, { mark: string; badge?: string }> = {
   qoder: { mark: 'Q' },
   'qoder-cn': { mark: 'Q', badge: 'CN' },
   workbuddy: { mark: 'W' },
+  doubao: { mark: '豆' },
 }
 
 export function AppGlyph({ id, size = 40 }: { id: AppId; size?: number }) {
@@ -233,19 +234,22 @@ export function nextRunText(id: AppId, state: BootstrapState): string {
 
 export function checkedInCount(state: BootstrapState): number {
   const today = localDateKey()
-  return Object.values(state.runtime).filter(
-    (runtime) =>
-      runtime.lastSuccessDate === today || (runtime.probeDate === today && runtime.todayCheckedIn),
-  ).length
+  return visibleAppIds(state.settings).filter((id) => {
+    const runtime = state.runtime[id]
+    return runtime.lastSuccessDate === today || (runtime.probeDate === today && runtime.todayCheckedIn)
+  }).length
 }
 
 export function enabledCount(state: BootstrapState): number {
-  return Object.values(state.apps).filter((app) => app.enabled).length
+  return visibleAppIds(state.settings).filter(
+    (id) => state.apps[id].enabled && state.runtime[id].status !== 'unavailable',
+  ).length
 }
 
 export function totalCredits(state: BootstrapState): number {
   const today = localDateKey()
-  return Object.entries(state.runtime).reduce((sum, [id, runtime]) => {
+  return visibleAppIds(state.settings).reduce((sum, id) => {
+    const runtime = state.runtime[id]
     const done = runtime.lastSuccessDate === today
     return sum + (done && runtime.credits ? runtime.credits : 0)
   }, 0)

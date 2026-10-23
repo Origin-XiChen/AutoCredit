@@ -1,4 +1,4 @@
-export type AppId = 'trae' | 'qoder' | 'qoder-cn' | 'workbuddy'
+export type AppId = 'trae' | 'qoder' | 'qoder-cn' | 'workbuddy' | 'doubao'
 
 export type ThemeMode = 'system' | 'light' | 'dark'
 
@@ -44,6 +44,8 @@ export interface GlobalSettings {
   closeToTray: boolean
   theme: ThemeMode
   logRetentionDays: number
+  developerMode: boolean
+  allowPrerelease: boolean
 }
 
 export interface ConfigFile {
@@ -63,6 +65,7 @@ export interface AppMeta {
   autoAuth: boolean
   patUrl?: string
   accountHint: string
+  note?: string
 }
 
 export interface BootstrapState {

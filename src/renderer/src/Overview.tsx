@@ -1,4 +1,4 @@
-import { APP_META, APP_ORDER } from '@shared/constants'
+import { APP_META, visibleAppIds } from '@shared/constants'
 import type { AppId, BootstrapState } from '@shared/types'
 import type { SettingsTab } from './Settings'
 import {
@@ -36,9 +36,11 @@ interface OverviewProps {
 function overallNext(state: BootstrapState): string {
   if (!state.settings.masterEnabled) return '已暂停'
   const today = localDateKey()
-  const pending = APP_ORDER.filter((id) => {
+  const pending = visibleAppIds(state.settings).filter((id) => {
     if (!state.apps[id].enabled) return false
     const runtime = state.runtime[id]
+    // 国际版等不可签到的程序不参与补签计时
+    if (runtime.status === 'unavailable') return false
     return !(runtime.lastSuccessDate === today || (runtime.probeDate === today && runtime.todayCheckedIn))
   })
   if (!pending.length) return '明日'
@@ -75,6 +77,7 @@ export default function Overview({
   const enabled = enabledCount(state)
   const credits = totalCredits(state)
   const master = state.settings.masterEnabled
+  const appIds = visibleAppIds(state.settings)
 
   return (
     <div className="page">
@@ -135,7 +138,7 @@ export default function Overview({
       </section>
 
       <div className="app-grid">
-        {APP_ORDER.map((id) => {
+        {appIds.map((id) => {
           const meta = APP_META[id]
           const app = state.apps[id]
           const runtime = state.runtime[id]

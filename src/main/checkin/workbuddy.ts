@@ -13,6 +13,13 @@ interface Credential {
   source: string
 }
 
+/** 国际版 WorkBuddy 没有每日签到，只有中国版（codebuddy.cn）才需要签到。 */
+function isInternationalDomain(domain: string): boolean {
+  return !/\.cn$/i.test(domain)
+}
+
+const INTERNATIONAL_MESSAGE = '检测到 WorkBuddy 国际版，国际版没有每日签到，无需签到'
+
 const HELPER = String.raw`
 const fs = require('node:fs');
 const crypto = require('node:crypto');
@@ -273,6 +280,10 @@ export class WorkBuddyAdapter implements Adapter {
     try {
       const doc = JSON.parse(readFileSync(file, 'utf8')) as Record<string, unknown>
       const auth = asRecord(doc.auth) ?? {}
+      const domain = pickString(auth, ['domain']) || 'www.codebuddy.cn'
+      if (isInternationalDomain(domain)) {
+        return { ready: false, status: 'unavailable', message: INTERNATIONAL_MESSAGE }
+      }
       const expiresAt = pickNumber(auth, ['expiresAt'])
       if (expiresAt && expiresAt < Date.now()) {
         return { ready: false, message: 'WorkBuddy 登录态已过期，请重新打开客户端' }
@@ -288,6 +299,9 @@ export class WorkBuddyAdapter implements Adapter {
       const credential = await this.readCredential(true)
       if (!credential) {
         return { ok: false, message: '未找到 WorkBuddy 登录态，请先打开并登录 WorkBuddy' }
+      }
+      if (isInternationalDomain(credential.domain)) {
+        return { ok: true, message: INTERNATIONAL_MESSAGE }
       }
       if (credential.expiresAt && credential.expiresAt < Date.now()) {
         return { ok: false, message: 'WorkBuddy 登录态已过期，请重新打开客户端' }
@@ -313,6 +327,9 @@ export class WorkBuddyAdapter implements Adapter {
       const credential = await this.readCredential()
       if (!credential) {
         return { checkedIn: false, status: 'needs-setup', message: '未找到 WorkBuddy 登录态' }
+      }
+      if (isInternationalDomain(credential.domain)) {
+        return { checkedIn: false, status: 'unavailable', message: INTERNATIONAL_MESSAGE }
       }
       if (credential.expiresAt && credential.expiresAt < Date.now()) {
         return {
@@ -348,6 +365,9 @@ export class WorkBuddyAdapter implements Adapter {
       const credential = await this.readCredential()
       if (!credential) {
         return { status: 'needs-setup', message: '未找到 WorkBuddy 登录态，请先登录 WorkBuddy 客户端' }
+      }
+      if (isInternationalDomain(credential.domain)) {
+        return { status: 'unavailable', message: INTERNATIONAL_MESSAGE }
       }
       if (credential.expiresAt && credential.expiresAt < Date.now()) {
         return { status: 'needs-auth', message: 'WorkBuddy 登录态已过期，请重新打开客户端' }

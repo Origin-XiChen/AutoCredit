@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
-import { APP_META, APP_ORDER } from '@shared/constants'
+import { APP_META, visibleAppIds } from '@shared/constants'
 import type { AppId, LogEntry, LogLevel } from '@shared/types'
 import { IconSearch, formatLogTime } from './ui'
 
 interface LogsPageProps {
   logs: LogEntry[]
+  developerMode: boolean
   onClear: () => void
   onExport: () => void
 }
@@ -18,11 +19,16 @@ const LEVEL_LABEL: Record<LogLevel, string> = {
 
 const LEVELS: Array<LogLevel | 'all'> = ['all', 'info', 'success', 'warn', 'error']
 
-export default function LogsPage({ logs, onClear, onExport }: LogsPageProps) {
+export default function LogsPage({ logs, developerMode, onClear, onExport }: LogsPageProps) {
   const [query, setQuery] = useState('')
   const [appFilter, setAppFilter] = useState<AppId | 'all'>('all')
   const [levelFilter, setLevelFilter] = useState<LogLevel | 'all'>('all')
   const [confirmClear, setConfirmClear] = useState(false)
+  const appIds = visibleAppIds({ developerMode })
+
+  useEffect(() => {
+    if (appFilter !== 'all' && !appIds.includes(appFilter)) setAppFilter('all')
+  }, [appFilter, developerMode])
 
   useEffect(() => {
     if (!confirmClear) return
@@ -95,7 +101,7 @@ export default function LogsPage({ logs, onClear, onExport }: LogsPageProps) {
         <button className={`chip${appFilter === 'all' ? ' active' : ''}`} onClick={() => setAppFilter('all')}>
           全部程序
         </button>
-        {APP_ORDER.map((id) => (
+        {appIds.map((id) => (
           <button
             key={id}
             className={`chip${appFilter === id ? ' active' : ''}`}

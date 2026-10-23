@@ -1,6 +1,6 @@
 {
   "name": "autocredit",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Quiet daily check-in assistant for Trae, Qoder, Qoder CN and WorkBuddy",
   "main": "./out/main/index.js",
   "author": "XiChen",

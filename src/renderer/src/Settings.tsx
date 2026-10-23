@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
-import { APP_META, APP_ORDER } from '@shared/constants'
+import { APP_META, visibleAppIds } from '@shared/constants'
 import type { AppId, AppConfig, BootstrapState, GlobalSettings, SavePatResult } from '@shared/types'
 import {
   AppGlyph,
@@ -193,6 +193,7 @@ export default function SettingsPage({
   const [highlight, setHighlight] = useState<AppId | undefined>()
   const rowRefs = useRef<Record<string, HTMLElement | null>>({})
   const { settings } = state
+  const appIds = visibleAppIds(settings)
 
   useEffect(() => {
     if (!focusApp || tab !== 'apps') return
@@ -291,7 +292,7 @@ export default function SettingsPage({
             title="独立签到时间"
             description="为每个程序单独设定签到时间，关闭时统一使用默认时间。"
           >
-            {APP_ORDER.map((id) => {
+            {appIds.map((id) => {
               const app = state.apps[id]
               const meta = APP_META[id]
               return (
@@ -333,7 +334,7 @@ export default function SettingsPage({
             </span>
           </div>
 
-          {APP_ORDER.map((id) => {
+          {appIds.map((id) => {
             const app = state.apps[id]
             const runtime = state.runtime[id]
             const meta = APP_META[id]
@@ -352,6 +353,7 @@ export default function SettingsPage({
                     <h2>
                       {meta.name}
                       <span className="auth-badge">{meta.autoAuth ? '自动登录态' : 'PAT'}</span>
+                      {id === 'doubao' && <span className="auth-badge">实验</span>}
                     </h2>
                     <p>{meta.description}</p>
                   </div>
@@ -381,6 +383,8 @@ export default function SettingsPage({
                     <strong>{formatLastSuccess(runtime.lastSuccessAt)}</strong>
                   </div>
                 </div>
+
+                {meta.note && <p className="app-note">{meta.note}</p>}
 
                 {meta.autoAuth ? (
                   <div className="auto-auth-row">
@@ -442,6 +446,19 @@ export default function SettingsPage({
             </Row>
           </Section>
 
+          <Section title="开发者模式" description="实验性功能默认隐藏，开启后才会出现在其他设置页中。">
+            <Row
+              title="开发者模式"
+              description="开启后可看到豆包签到。豆包签到会启动本机豆包客户端，并通过调试端口模拟点击领取每日额度，可能随客户端更新失效。"
+            >
+              <Switch
+                checked={settings.developerMode}
+                onChange={(developerMode) => onUpdateSettings({ developerMode })}
+                label="开发者模式"
+              />
+            </Row>
+          </Section>
+
           <Section title="数据" description="配置、日志和令牌都保存在本机，不经过任何第三方服务器。">
             <Row title="数据目录" description={state.dataDir}>
               <button className="btn ghost sm" onClick={() => copyPath(state.dataDir)}>
@@ -472,6 +489,16 @@ export default function SettingsPage({
               <span className="about-version">版本 {state.version} · {state.isPackaged ? '正式版' : '开发版'}</span>
             </div>
           </div>
+
+          <Section title="更新" description="程序启动时会自动检查 GitHub 上的新版本，也可从托盘菜单手动检查。">
+            <Row title="接收 dev 版本" description="开启后会同时检查预发布（dev / beta）版本；关闭时只接收正式版本。">
+              <Switch
+                checked={settings.allowPrerelease}
+                onChange={(allowPrerelease) => onUpdateSettings({ allowPrerelease })}
+                label="接收 dev 版本更新"
+              />
+            </Row>
+          </Section>
 
           <Section title="工作方式">
             <div className="about-text">
