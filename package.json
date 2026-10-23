@@ -15,8 +15,8 @@
     "start": "electron-vite preview",
     "build": "electron-vite build",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
-    "dist": "npm run build && electron-builder --win nsis",
-    "dist:portable": "npm run build && electron-builder --win portable"
+    "dist": "npm run build && electron-builder --win nsis --publish never",
+    "dist:portable": "npm run build && electron-builder --win portable --publish never"
   },
   "dependencies": {
     "react": "^19.3.1",
