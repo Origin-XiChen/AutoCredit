@@ -128,6 +128,7 @@ export interface AutoCreditApi {
   detect(id: AppId): Promise<DetectResult>
   probeAll(): Promise<void>
   runNow(ids?: AppId[]): Promise<void>
+  checkUpdates(): Promise<void>
   getLogs(): Promise<LogEntry[]>
   clearLogs(): Promise<void>
   exportLogs(): Promise<string | null>

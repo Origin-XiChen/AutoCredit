@@ -1,6 +1,6 @@
 # AutoCredit
 
-AutoCredit 是一个 Windows 桌面小工具，用于每天在 Trae、Qoder、Qoder CN、WorkBuddy 上静默签到并领取积分。另有一个默认隐藏的豆包实验功能，可在设置中开启开发者模式后使用。
+AutoCredit 是一个 Windows 桌面小工具，用于每天在 Trae CN、Qoder、Qoder CN、WorkBuddy 上静默签到并领取积分。另有一个默认隐藏的豆包实验功能，可在设置中开启开发者模式后使用。
 
 > 本项目仅供个人使用，与 Trae、Qoder、WorkBuddy 及其所属公司没有任何关联，也未获得其官方认可或授权。
 
@@ -21,7 +21,7 @@ AutoCredit 是一个 Windows 桌面小工具，用于每天在 Trae、Qoder、Qo
 
 | 程序 | 登录方式 |
 | --- | --- |
-| Trae CN | 读取本机 Trae 登录态 |
+| Trae CN | 读取本机 Trae CN 登录态 |
 | Qoder | 在设置中填写个人访问令牌（PAT） |
 | Qoder CN | 在设置中填写个人访问令牌（PAT） |
 | WorkBuddy | 读取本机 WorkBuddy 登录态 |

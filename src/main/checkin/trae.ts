@@ -52,7 +52,7 @@ function decryptAuthValue(value: string): TraeAuth {
   const buffer = Buffer.from(value, 'base64')
   const header = buffer.subarray(0, 6)
   if (!(header[0] === 0x74 && header[1] === 0x63 && header[2] === 0x05 && header[3] === 0x10)) {
-    throw new Error('未知的 Trae 登录态加密格式')
+    throw new Error('未知的 Trae CN 登录态加密格式')
   }
   const randomBytesPart = buffer.subarray(6, 38)
   const encrypted = buffer.subarray(38)
@@ -66,7 +66,7 @@ function decryptAuthValue(value: string): TraeAuth {
   const stored = plain.subarray(0, 64)
   const payload = plain.subarray(64)
   const computed = createHash('sha512').update(payload).digest()
-  if (!stored.equals(computed)) throw new Error('Trae 登录态校验失败')
+  if (!stored.equals(computed)) throw new Error('Trae CN 登录态校验失败')
   return JSON.parse(payload.toString('utf8')) as TraeAuth
 }
 
@@ -197,22 +197,22 @@ export class TraeAdapter implements Adapter {
     if (!info) {
       return {
         ready: false,
-        message: '未找到本机 Trae 登录态，请先打开并登录 Trae 客户端',
+        message: '未找到本机 Trae CN 登录态，请先打开并登录 Trae 客户端',
       }
     }
     if (isInternational(info)) {
       return { ready: false, status: 'unavailable', message: INTERNATIONAL_MESSAGE }
     }
     if (info.auth.refreshExpiredAt && info.auth.refreshExpiredAt < Date.now()) {
-      return { ready: false, message: 'Trae 登录态已过期，请重新登录客户端' }
+      return { ready: false, message: 'Trae CN 登录态已过期，请重新登录客户端' }
     }
-    return { ready: true, message: '已连接本机 Trae 登录态' }
+    return { ready: true, message: '已连接本机 Trae CN 登录态' }
   }
 
   async detect(): Promise<DetectResult> {
     const info = loadStorage()
     if (!info) {
-      return { ok: false, message: '未找到本机 Trae 登录态，请先打开并登录 Trae 客户端' }
+      return { ok: false, message: '未找到本机 Trae CN 登录态，请先打开并登录 Trae 客户端' }
     }
     if (isInternational(info)) {
       return { ok: true, message: INTERNATIONAL_MESSAGE }
@@ -234,7 +234,7 @@ export class TraeAdapter implements Adapter {
   async probe(): Promise<ProbeResult> {
     const info = loadStorage()
     if (!info) {
-      return { checkedIn: false, status: 'needs-setup', message: '未找到本机 Trae 登录态' }
+      return { checkedIn: false, status: 'needs-setup', message: '未找到本机 Trae CN 登录态' }
     }
     if (isInternational(info)) {
       return { checkedIn: false, status: 'unavailable', message: INTERNATIONAL_MESSAGE }
@@ -276,7 +276,7 @@ export class TraeAdapter implements Adapter {
         return {
           checkedIn: false,
           status: 'needs-auth',
-          message: 'Trae 登录态已过期，请重新打开并登录 Trae 客户端',
+          message: 'Trae CN 登录态已过期，请重新打开并登录 Trae 客户端',
         }
       }
       return { checkedIn: false, status: 'failed', message: `网络请求失败：${message}` }
@@ -286,7 +286,7 @@ export class TraeAdapter implements Adapter {
   async checkIn(): Promise<Outcome> {
     const info = loadStorage()
     if (!info) {
-      return { status: 'needs-setup', message: '未找到本机 Trae 登录态，请先登录 Trae 客户端' }
+      return { status: 'needs-setup', message: '未找到本机 Trae CN 登录态，请先登录 Trae 客户端' }
     }
     if (isInternational(info)) {
       return { status: 'unavailable', message: INTERNATIONAL_MESSAGE }
@@ -361,7 +361,7 @@ export class TraeAdapter implements Adapter {
       if (message === 'AUTH_EXPIRED') {
         return {
           status: 'needs-auth',
-          message: 'Trae 登录态已过期，请重新打开并登录 Trae 客户端',
+          message: 'Trae CN 登录态已过期，请重新打开并登录 Trae 客户端',
         }
       }
       return { status: 'failed', message: `网络请求失败：${message}` }

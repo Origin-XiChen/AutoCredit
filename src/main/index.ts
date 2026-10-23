@@ -295,6 +295,10 @@ function bootstrap(): void {
       await scheduler.probeAll()
     })
 
+    ipcMain.handle('update:check', async () => {
+      await checkForUpdates(true)
+    })
+
     ipcMain.handle('run:now', async (_event, rawIds: unknown) => {
       const ids = Array.isArray(rawIds)
         ? rawIds.map((value) => toAppId(value)).filter((value): value is AppId => Boolean(value))

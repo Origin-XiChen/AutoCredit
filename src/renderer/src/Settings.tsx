@@ -191,6 +191,7 @@ export default function SettingsPage({
   notify,
 }: SettingsPageProps) {
   const [highlight, setHighlight] = useState<AppId | undefined>()
+  const [checkingUpdate, setCheckingUpdate] = useState(false)
   const rowRefs = useRef<Record<string, HTMLElement | null>>({})
   const { settings } = state
   const appIds = visibleAppIds(settings)
@@ -214,6 +215,15 @@ export default function SettingsPage({
       notify('路径已复制')
     } catch {
       notify('复制失败，请手动选择路径', 'error')
+    }
+  }
+
+  const checkUpdates = async (): Promise<void> => {
+    setCheckingUpdate(true)
+    try {
+      await window.autoCredit.checkUpdates()
+    } finally {
+      setCheckingUpdate(false)
     }
   }
 
@@ -330,7 +340,7 @@ export default function SettingsPage({
           <div className="inline-note info-note">
             <IconShield size={18} />
             <span>
-              主开关开启后，只会签到下面已启用的程序。Trae 与 WorkBuddy 自动读取本机客户端登录态；Qoder 需要一次性保存个人访问令牌。
+              主开关开启后，只会签到下面已启用的程序。Trae CN 与 WorkBuddy 自动读取本机客户端登录态；Qoder 需要一次性保存个人访问令牌。
             </span>
           </div>
 
@@ -485,12 +495,18 @@ export default function SettingsPage({
             <span className="about-logo">AC</span>
             <div>
               <h2>AutoCredit</h2>
-              <p>Trae · Qoder · Qoder CN · WorkBuddy 每日静默签到</p>
+              <p>Trae CN · Qoder · Qoder CN · WorkBuddy 每日静默签到</p>
               <span className="about-version">版本 {state.version} · {state.isPackaged ? '正式版' : '开发版'}</span>
             </div>
           </div>
 
-          <Section title="更新" description="程序启动时会自动检查 GitHub 上的新版本，也可从托盘菜单手动检查。">
+          <Section title="更新" description="程序启动时会自动检查 GitHub 上的新版本。你也可以点击下面的按钮，或右键托盘图标随时检查。">
+            <Row title="检查更新" description={`当前版本 ${state.version}，发现新版本后会在后台下载并提示重启安装。`}>
+              <button className="btn ghost sm" onClick={() => void checkUpdates()} disabled={checkingUpdate}>
+                <IconRefresh className={checkingUpdate ? 'spin' : undefined} />
+                {checkingUpdate ? '检查中…' : '检查更新'}
+              </button>
+            </Row>
             <Row title="接收 dev 版本" description="开启后会同时检查预发布（dev / beta）版本；关闭时只接收正式版本。">
               <Switch
                 checked={settings.allowPrerelease}
@@ -507,7 +523,7 @@ export default function SettingsPage({
                 如果电脑休眠、锁屏或处于全屏应用，会在恢复后立即静默补签。
               </p>
               <p>
-                Trae 与 WorkBuddy 使用本机客户端保存的登录态自动完成签到；Qoder 与 Qoder CN 使用你在设置中保存的个人访问令牌。
+                Trae CN 与 WorkBuddy 使用本机客户端保存的登录态自动完成签到；Qoder 与 Qoder CN 使用你在设置中保存的个人访问令牌。
                 所有令牌只保存在本机，并使用系统安全存储加密。
               </p>
             </div>

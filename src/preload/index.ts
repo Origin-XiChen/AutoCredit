@@ -38,6 +38,7 @@ const api: AutoCreditApi = {
   detect: (id: AppId) => ipcRenderer.invoke('app:detect', id) as Promise<DetectResult>,
   probeAll: () => ipcRenderer.invoke('probe:all') as Promise<void>,
   runNow: (ids?: AppId[]) => ipcRenderer.invoke('run:now', ids) as Promise<void>,
+  checkUpdates: () => ipcRenderer.invoke('update:check') as Promise<void>,
   getLogs: () => ipcRenderer.invoke('logs:get') as Promise<LogEntry[]>,
   clearLogs: () => ipcRenderer.invoke('logs:clear') as Promise<void>,
   exportLogs: () => ipcRenderer.invoke('logs:export') as Promise<string | null>,

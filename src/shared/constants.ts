@@ -10,11 +10,11 @@ export function visibleAppIds(settings: { developerMode: boolean }): AppId[] {
 export const APP_META: Record<AppId, AppMeta> = {
   trae: {
     id: 'trae',
-    name: 'Trae',
-    fullName: 'Trae Work',
-    description: '读取本机 Trae 登录态，自动领取每日签到积分',
+    name: 'Trae CN',
+    fullName: 'Trae CN',
+    description: '读取本机 Trae CN 登录态，自动领取每日签到积分',
     autoAuth: true,
-    accountHint: '自动读取本机 Trae / Trae CN 客户端登录态',
+    accountHint: '自动读取本机 Trae CN 客户端登录态',
     note: '仅中国版（trae.cn）有每日签到，国际版（trae.ai）无需签到',
   },
   qoder: {
