@@ -18,6 +18,7 @@ import { Logger } from './logger'
 import { Scheduler } from './scheduler'
 import { Store } from './store'
 import { TrayController } from './tray'
+import { checkForUpdates, initUpdater } from './updater'
 import { WindowManager } from './windows'
 
 app.setAppUserModelId('com.xichen.autocredit')
@@ -101,8 +102,7 @@ function bootstrap(): void {
     applyLoginItem(store.settings.autoLaunch)
 
     const hiddenLaunch =
-      process.argv.includes('--hidden') ||
-      (!firstRun && store.settings.startMinimized)
+      process.argv.includes('--hidden') && store.settings.startMinimized
     windows.createMainWindow(firstRun || !hiddenLaunch, {
       onClose: (event) => {
         if (windows.isQuitting) return
@@ -133,11 +133,19 @@ function bootstrap(): void {
       },
       onToggleMaster: (enabled) => setMaster(enabled),
       onSettings: () => windows.showMain(),
+      onCheckUpdates: () => {
+        void checkForUpdates(true)
+      },
       onQuit: () => quitApp(),
     })
 
     registerIpc()
     scheduler.start()
+
+    initUpdater({
+      logger,
+      onBeforeInstall: () => windows.setQuitting(true),
+    })
 
     powerMonitor.on('resume', () => {
       setTimeout(() => {

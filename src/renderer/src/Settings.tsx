@@ -247,18 +247,18 @@ export default function SettingsPage({
                 label="自动签到主开关"
               />
             </Row>
-            <Row title="开机自启动" description="登录 Windows 后在托盘静默启动，不弹出主窗口。">
+            <Row title="开机自启动" description="登录 Windows 后自动启动，是否显示主界面由下一项决定。">
               <Switch
                 checked={settings.autoLaunch}
                 onChange={(autoLaunch) => onUpdateSettings({ autoLaunch })}
                 label="开机自启动"
               />
             </Row>
-            <Row title="启动时最小化到托盘" description="随系统启动时不显示主界面，仅在托盘运行。">
+            <Row title="开机自启动时最小化到托盘" description="开机启动时不显示主界面，仅在托盘运行；双击图标启动仍会打开主界面。">
               <Switch
                 checked={settings.startMinimized}
                 onChange={(startMinimized) => onUpdateSettings({ startMinimized })}
-                label="启动时最小化到托盘"
+                label="开机自启动时最小化到托盘"
               />
             </Row>
             <Row title="关闭窗口时最小化到托盘" description="点击关闭按钮不会退出程序，签到计划继续运行。">

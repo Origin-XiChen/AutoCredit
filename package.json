@@ -1,6 +1,6 @@
 {
   "name": "autocredit",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Quiet daily check-in assistant for Trae, Qoder, Qoder CN and WorkBuddy",
   "main": "./out/main/index.js",
   "author": "XiChen",
@@ -19,6 +19,7 @@
     "dist:portable": "npm run build && electron-builder --win portable --publish never"
   },
   "dependencies": {
+    "electron-updater": "^6.8.9",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"
   },
@@ -45,6 +46,13 @@
       "out/**/*",
       "resources/icon.png",
       "package.json"
+    ],
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "Origin-XiChen",
+        "repo": "AutoCredit"
+      }
     ],
     "win": {
       "target": [

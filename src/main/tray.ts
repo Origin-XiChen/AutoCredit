@@ -8,6 +8,7 @@ interface TrayControllerOptions {
   onRunNow: () => void
   onToggleMaster: (enabled: boolean) => void
   onSettings: () => void
+  onCheckUpdates: () => void
   onQuit: () => void
 }
 
@@ -37,6 +38,7 @@ export class TrayController {
         click: (item) => this.options.onToggleMaster(item.checked),
       },
       { label: '设置…', click: () => this.options.onSettings() },
+      { label: '检查更新…', click: () => this.options.onCheckUpdates() },
       { type: 'separator' },
       { label: '退出 AutoCredit', click: () => this.options.onQuit() },
     ])
