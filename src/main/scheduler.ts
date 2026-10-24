@@ -1,7 +1,7 @@
 import { APP_META, visibleAppIds } from '@shared/constants'
 import type { AppId, RunStatus } from '@shared/types'
 import type { Adapter, Outcome, ProbeResult } from './checkin/types'
-import { isTimeReached, localDateKey } from './date'
+import { checkinDateKey, isTimeReached, localDateKey } from './date'
 import { getNotificationState } from './fullscreen'
 import type { Logger } from './logger'
 import type { Store } from './store'
@@ -110,13 +110,13 @@ export class Scheduler {
       for (const id of targets) {
         const readiness = this.options.adapters[id].readiness()
         if (!readiness.ready) {
-          const today = localDateKey()
+          const today = this.dateKeyFor(id)
           this.options.store.updateRuntime(id, {
             status: readiness.status ?? readinessStatus(id),
             message: readiness.message,
             lastAttemptDate: today,
             lastAttemptAt: new Date().toISOString(),
-            attempts: Math.max(1, this.options.store.runtime[id].attempts),
+            attempts: Math.max(1, this.attemptsFor(id)),
           })
           this.options.logger.warn(`${APP_META[id].name}：${readiness.message}`, id)
           continue
@@ -147,15 +147,26 @@ export class Scheduler {
     return app.useCustomTime ? app.time : this.options.store.settings.defaultTime
   }
 
+  /** 程序所属的签到日：Qoder 系列 10:00 之前仍算前一天。 */
+  private dateKeyFor(id: AppId): string {
+    return checkinDateKey(APP_META[id].checkinResetHour ?? 0)
+  }
+
+  /** 只会累计同一个签到日内的尝试次数，跨过 10:00 边界后重新计数。 */
+  private attemptsFor(id: AppId): number {
+    const runtime = this.options.store.runtime[id]
+    return runtime.lastAttemptDate === this.dateKeyFor(id) ? runtime.attempts : 0
+  }
+
   private doneToday(id: AppId): boolean {
-    const today = localDateKey()
+    const today = this.dateKeyFor(id)
     const runtime = this.options.store.runtime[id]
     if (runtime.lastSuccessDate === today) return true
     return runtime.probeDate === today && runtime.todayCheckedIn === true
   }
 
   private settledToday(id: AppId): boolean {
-    const today = localDateKey()
+    const today = this.dateKeyFor(id)
     const runtime = this.options.store.runtime[id]
     if (runtime.lastAttemptDate !== today) return false
     if (runtime.status === 'cancelled') return true
@@ -197,7 +208,6 @@ export class Scheduler {
     const due = this.dueApps()
     if (!due.length) return
 
-    const today = localDateKey()
     const ready: AppId[] = []
     for (const id of due) {
       const readiness = this.options.adapters[id].readiness()
@@ -205,9 +215,9 @@ export class Scheduler {
         this.options.store.updateRuntime(id, {
           status: readiness.status ?? readinessStatus(id),
           message: readiness.message,
-          lastAttemptDate: today,
+          lastAttemptDate: this.dateKeyFor(id),
           lastAttemptAt: new Date().toISOString(),
-          attempts: Math.max(1, this.options.store.runtime[id].attempts),
+          attempts: Math.max(1, this.attemptsFor(id)),
         })
         this.options.logger.warn(`${APP_META[id].name}：${readiness.message}`, id)
         continue
@@ -233,7 +243,7 @@ export class Scheduler {
           this.options.store.updateRuntime(id, {
             status: 'cancelled',
             message: '今日签到已被取消，可在总览中手动签到',
-            lastAttemptDate: today,
+            lastAttemptDate: this.dateKeyFor(id),
             lastAttemptAt: new Date().toISOString(),
           })
         }
@@ -251,8 +261,8 @@ export class Scheduler {
 
   private async execute(id: AppId): Promise<void> {
     const startedAt = new Date()
-    const today = localDateKey()
-    const attempts = this.options.store.runtime[id].attempts + 1
+    const today = this.dateKeyFor(id)
+    const attempts = this.attemptsFor(id) + 1
     this.options.store.updateRuntime(id, {
       status: 'running',
       message: '正在签到…',
@@ -277,7 +287,7 @@ export class Scheduler {
 
   private applyOutcome(id: AppId, outcome: Outcome, attempts: number): void {
     const name = APP_META[id].name
-    const today = localDateKey()
+    const today = this.dateKeyFor(id)
     const nowIso = new Date().toISOString()
     const current = this.options.store.runtime[id]
 
@@ -340,7 +350,7 @@ export class Scheduler {
 
   private applyProbe(id: AppId, probe: ProbeResult): void {
     const name = APP_META[id].name
-    const today = localDateKey()
+    const today = this.dateKeyFor(id)
     const current = this.options.store.runtime[id]
 
     if (current.status === 'running') return

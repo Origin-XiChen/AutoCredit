@@ -294,7 +294,7 @@ export default function SettingsPage({
             </Row>
             <div className="inline-note">
               <IconClockInline />
-              <span>建议安排在 10:10 之后：Qoder 每日签到活动在 10:00 刷新。</span>
+              <span>Qoder 系列每日 10:00 刷新：10:00 前的签到属于前一天，程序会自动按这个边界判断，不会误判为当天已完成。</span>
             </div>
           </Section>
 
@@ -312,6 +312,7 @@ export default function SettingsPage({
                     <span>{meta.name}</span>
                     <small>
                       {app.useCustomTime ? `每天 ${app.time} 签到` : `使用默认 ${settings.defaultTime}`}
+                      {meta.checkinResetHour ? ` · 每日 ${meta.checkinResetHour}:00 刷新` : ''}
                     </small>
                   </div>
                   <Switch

@@ -66,6 +66,8 @@ export interface AppMeta {
   patUrl?: string
   accountHint: string
   note?: string
+  /** 每日签到刷新时刻（小时），此时间之前仍属于前一个签到日。 */
+  checkinResetHour?: number
 }
 
 export interface BootstrapState {

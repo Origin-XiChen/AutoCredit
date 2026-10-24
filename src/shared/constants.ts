@@ -25,6 +25,8 @@ export const APP_META: Record<AppId, AppMeta> = {
     autoAuth: false,
     patUrl: 'https://qoder.com/account/integrations',
     accountHint: '需要一次性保存 Qoder 个人访问令牌（PAT）',
+    note: '每日 10:00 刷新，10:00 前的签到计为前一天；程序会按此边界判断，不会误判为当天已完成',
+    checkinResetHour: 10,
   },
   'qoder-cn': {
     id: 'qoder-cn',
@@ -34,6 +36,8 @@ export const APP_META: Record<AppId, AppMeta> = {
     autoAuth: false,
     patUrl: 'https://qoder.com.cn/account/integrations',
     accountHint: '需要一次性保存 Qoder CN 个人访问令牌（PAT）',
+    note: '每日 10:00 刷新，10:00 前的签到计为前一天；程序会按此边界判断，不会误判为当天已完成',
+    checkinResetHour: 10,
   },
   workbuddy: {
     id: 'workbuddy',

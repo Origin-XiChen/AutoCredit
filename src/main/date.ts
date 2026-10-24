@@ -5,6 +5,19 @@ export function localDateKey(date = new Date()): string {
   return `${y}-${m}-${d}`
 }
 
+/**
+ * 返回程序所属的“签到日”。Qoder 系列每日 10:00 刷新，因此 10:00 之前
+ * 仍属于前一个签到日，避免把前一天的已签到状态误判为当天已完成。
+ */
+export function checkinDateKey(resetHour: number, date = new Date()): string {
+  if (resetHour > 0 && date.getHours() < resetHour) {
+    const previous = new Date(date)
+    previous.setDate(previous.getDate() - 1)
+    return localDateKey(previous)
+  }
+  return localDateKey(date)
+}
+
 export function isValidTime(value: string): boolean {
   return /^([01]\d|2[0-3]):[0-5]\d$/.test(value)
 }
