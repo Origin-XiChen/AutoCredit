@@ -1,7 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { APP_META, visibleAppIds } from '@shared/constants'
-import type { AppId, AppConfig, BootstrapState, GlobalSettings, SavePatResult } from '@shared/types'
+import type {
+  AppId,
+  AppConfig,
+  BootstrapState,
+  GlobalSettings,
+  SavePatResult,
+  UpdateStatus,
+} from '@shared/types'
 import {
   AppGlyph,
   IconExternal,
@@ -192,9 +199,12 @@ export default function SettingsPage({
 }: SettingsPageProps) {
   const [highlight, setHighlight] = useState<AppId | undefined>()
   const [checkingUpdate, setCheckingUpdate] = useState(false)
+  const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(null)
   const rowRefs = useRef<Record<string, HTMLElement | null>>({})
   const { settings } = state
   const appIds = visibleAppIds(settings)
+
+  useEffect(() => window.autoCredit.onUpdateStatus(setUpdateStatus), [])
 
   useEffect(() => {
     if (!focusApp || tab !== 'apps') return
@@ -508,6 +518,30 @@ export default function SettingsPage({
                 {checkingUpdate ? '检查中…' : '检查更新'}
               </button>
             </Row>
+            {updateStatus && (
+              <div
+                className={`update-status${
+                  updateStatus.phase === 'latest'
+                    ? ' is-success'
+                    : updateStatus.phase === 'error'
+                      ? ' is-error'
+                      : ''
+                }`}
+              >
+                {updateStatus.phase === 'checking' || updateStatus.phase === 'available' ? (
+                  <IconRefresh className="spin" size={14} />
+                ) : null}
+                <span>{updateStatus.message}</span>
+                {updateStatus.phase === 'ready' && (
+                  <button
+                    className="btn primary sm"
+                    onClick={() => void window.autoCredit.installUpdate()}
+                  >
+                    重启并安装
+                  </button>
+                )}
+              </div>
+            )}
             <Row title="接收 dev 版本" description="开启后会同时检查预发布（dev / beta）版本；关闭时只接收正式版本。">
               <Switch
                 checked={settings.allowPrerelease}

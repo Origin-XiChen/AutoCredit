@@ -7,6 +7,7 @@ import type {
   LogEntry,
   PopupData,
   SavePatResult,
+  UpdateStatus,
 } from '@shared/types'
 
 const api: AutoCreditApi = {
@@ -29,6 +30,22 @@ const api: AutoCreditApi = {
       ipcRenderer.removeListener('log:new', listener)
     }
   },
+  onUpdateStatus: (callback) => {
+    const listener = (_event: Electron.IpcRendererEvent, status: UpdateStatus): void => {
+      callback(status)
+    }
+    ipcRenderer.on('update:status', listener)
+    return () => {
+      ipcRenderer.removeListener('update:status', listener)
+    }
+  },
+  onOpenSettingsAbout: (callback) => {
+    const listener = (): void => callback()
+    ipcRenderer.on('ui:settings-about', listener)
+    return () => {
+      ipcRenderer.removeListener('ui:settings-about', listener)
+    }
+  },
   setMaster: (enabled: boolean) => ipcRenderer.invoke('master:set', enabled) as Promise<void>,
   updateSettings: (patch) => ipcRenderer.invoke('settings:update', patch) as Promise<void>,
   updateApp: (id: AppId, patch) => ipcRenderer.invoke('app:update', id, patch) as Promise<void>,
@@ -39,6 +56,7 @@ const api: AutoCreditApi = {
   probeAll: () => ipcRenderer.invoke('probe:all') as Promise<void>,
   runNow: (ids?: AppId[]) => ipcRenderer.invoke('run:now', ids) as Promise<void>,
   checkUpdates: () => ipcRenderer.invoke('update:check') as Promise<void>,
+  installUpdate: () => ipcRenderer.invoke('update:install') as Promise<void>,
   getLogs: () => ipcRenderer.invoke('logs:get') as Promise<LogEntry[]>,
   clearLogs: () => ipcRenderer.invoke('logs:clear') as Promise<void>,
   exportLogs: () => ipcRenderer.invoke('logs:export') as Promise<string | null>,

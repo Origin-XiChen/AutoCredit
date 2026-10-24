@@ -1547,6 +1547,51 @@ a {
   color: var(--red);
 }
 
+.update-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 16px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(120, 120, 128, 0.08);
+  color: var(--text-2);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.update-status > span {
+  flex: 1;
+  min-width: 0;
+}
+
+.update-status > svg {
+  flex: none;
+  color: var(--accent);
+}
+
+.update-status.is-success {
+  color: #1f9d4d;
+  background: rgba(52, 199, 89, 0.09);
+}
+
+.update-status.is-success > svg {
+  color: inherit;
+}
+
+.update-status.is-error {
+  color: var(--red);
+  background: rgba(255, 59, 48, 0.08);
+}
+
+[data-theme='dark'] .update-status.is-success {
+  color: #42d977;
+}
+
+.update-status .btn {
+  flex: none;
+}
+
 .secure-badge {
   display: inline-flex;
   align-items: center;
@@ -1687,6 +1732,71 @@ a {
 }
 
 /* ---------- feedback ---------- */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.28);
+  animation: fadeIn 0.18s ease;
+}
+
+.modal-card {
+  width: 320px;
+  padding: 24px 22px 20px;
+  border-radius: 12px;
+  border: 1px solid var(--card-border);
+  background: var(--card-solid);
+  text-align: center;
+  animation: modalIn 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.modal-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  margin: 0 auto 12px;
+  border-radius: 10px;
+  background: rgba(0, 122, 255, 0.1);
+  color: var(--accent);
+}
+
+.modal-card h2 {
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.modal-card p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-2);
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
 
 .toast {
   position: fixed;

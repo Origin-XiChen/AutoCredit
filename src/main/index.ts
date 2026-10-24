@@ -19,7 +19,7 @@ import { Logger } from './logger'
 import { Scheduler } from './scheduler'
 import { Store } from './store'
 import { TrayController } from './tray'
-import { checkForUpdates, initUpdater, setAllowPrerelease } from './updater'
+import { checkForUpdates, initUpdater, installUpdate, setAllowPrerelease } from './updater'
 import { WindowManager } from './windows'
 
 app.setAppUserModelId('com.xichen.autocredit')
@@ -125,6 +125,11 @@ function bootstrap(): void {
       onChange: broadcastState,
     })
 
+    const openSettingsAbout = (): void => {
+      windows.showMain()
+      windows.window?.webContents.send('ui:settings-about')
+    }
+
     tray = new TrayController({
       iconPath: join(app.getAppPath(), 'resources', 'icon.png'),
       isMasterEnabled: () => store.settings.masterEnabled,
@@ -136,6 +141,7 @@ function bootstrap(): void {
       onToggleMaster: (enabled) => setMaster(enabled),
       onSettings: () => windows.showMain(),
       onCheckUpdates: () => {
+        openSettingsAbout()
         void checkForUpdates(true)
       },
       onQuit: () => quitApp(),
@@ -148,6 +154,7 @@ function bootstrap(): void {
       logger,
       allowPrerelease: store.settings.allowPrerelease,
       onBeforeInstall: () => windows.setQuitting(true),
+      sendStatus: (status) => windows.window?.webContents.send('update:status', status),
     })
 
     powerMonitor.on('resume', () => {
@@ -297,6 +304,10 @@ function bootstrap(): void {
 
     ipcMain.handle('update:check', async () => {
       await checkForUpdates(true)
+    })
+
+    ipcMain.handle('update:install', async () => {
+      installUpdate()
     })
 
     ipcMain.handle('run:now', async (_event, rawIds: unknown) => {

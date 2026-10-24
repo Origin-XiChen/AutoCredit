@@ -118,6 +118,14 @@ export interface AppInfo {
   isPackaged: boolean
 }
 
+export type UpdatePhase = 'checking' | 'latest' | 'available' | 'ready' | 'error' | 'blocked'
+
+export interface UpdateStatus {
+  phase: UpdatePhase
+  message: string
+  version?: string
+}
+
 export interface AutoCreditApi {
   getState(): Promise<BootstrapState>
   onState(callback: (state: BootstrapState) => void): () => void
@@ -131,6 +139,9 @@ export interface AutoCreditApi {
   probeAll(): Promise<void>
   runNow(ids?: AppId[]): Promise<void>
   checkUpdates(): Promise<void>
+  onUpdateStatus(callback: (status: UpdateStatus) => void): () => void
+  onOpenSettingsAbout(callback: () => void): () => void
+  installUpdate(): Promise<void>
   getLogs(): Promise<LogEntry[]>
   clearLogs(): Promise<void>
   exportLogs(): Promise<string | null>

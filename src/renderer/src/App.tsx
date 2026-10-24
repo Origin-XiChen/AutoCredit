@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import type { AppId, BootstrapState, LogEntry } from '@shared/types'
+import type { AppId, BootstrapState, LogEntry, UpdateStatus } from '@shared/types'
 import type { SettingsTab } from './Settings'
 import SettingsPage from './Settings'
 import LogsPage from './Logs'
@@ -25,6 +25,7 @@ export default function App() {
   const [manualBusy, setManualBusy] = useState<AppId | 'all' | null>(null)
   const [detecting, setDetecting] = useState<AppId | null>(null)
   const [probing, setProbing] = useState(false)
+  const [updateReady, setUpdateReady] = useState<UpdateStatus | null>(null)
   const toastId = useRef(0)
 
   useEffect(() => {
@@ -43,10 +44,19 @@ export default function App() {
     const offLog = window.autoCredit.onLog((entry) => {
       setLogs((previous) => [entry, ...previous].slice(0, 2000))
     })
+    const offUpdate = window.autoCredit.onUpdateStatus((status) => {
+      if (status.phase === 'ready') setUpdateReady(status)
+    })
+    const offAbout = window.autoCredit.onOpenSettingsAbout(() => {
+      setPage('settings')
+      setSettingsTab('about')
+    })
     return () => {
       active = false
       offState()
       offLog()
+      offUpdate()
+      offAbout()
     }
   }, [])
 
@@ -310,6 +320,31 @@ export default function App() {
           </main>
         </div>
       </div>
+
+      {updateReady && (
+        <div className="modal-backdrop" role="presentation" onClick={() => setUpdateReady(null)}>
+          <div
+            className="modal-card"
+            role="dialog"
+            aria-modal="true"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="modal-mark">
+              <IconCheck />
+            </div>
+            <h2>新版本已就绪</h2>
+            <p>AutoCredit {updateReady.version} 已下载，重启应用后完成安装。</p>
+            <div className="modal-actions">
+              <button className="btn ghost" onClick={() => setUpdateReady(null)}>
+                稍后
+              </button>
+              <button className="btn primary" onClick={() => void window.autoCredit.installUpdate()}>
+                立即重启
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {toast && (
         <div className={`toast tone-${toast.tone}`}>
