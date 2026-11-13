@@ -19,6 +19,10 @@ export interface AppConfig {
   enabled: boolean
   useCustomTime: boolean
   time: string
+  /** 自定义登录态 / 数据路径，留空时自动检测。 */
+  customPath?: string
+  /** 自定义客户端可执行文件或安装目录，留空时自动检测。 */
+  customExePath?: string
 }
 
 export interface AppRuntime {
@@ -111,6 +115,13 @@ export interface SavePatResult {
   message: string
 }
 
+export interface LocateResult {
+  ok: boolean
+  message: string
+  dataPath?: string
+  exePath?: string
+}
+
 export interface AppInfo {
   version: string
   dataDir: string
@@ -136,6 +147,8 @@ export interface AutoCreditApi {
   savePat(id: AppId, pat: string): Promise<SavePatResult>
   clearPat(id: AppId): Promise<void>
   detect(id: AppId): Promise<DetectResult>
+  locateApp(id: AppId): Promise<LocateResult>
+  pickPath(kind: 'file' | 'directory'): Promise<string | null>
   probeAll(): Promise<void>
   runNow(ids?: AppId[]): Promise<void>
   checkUpdates(): Promise<void>

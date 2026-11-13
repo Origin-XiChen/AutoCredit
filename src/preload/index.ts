@@ -4,6 +4,7 @@ import type {
   AutoCreditApi,
   BootstrapState,
   DetectResult,
+  LocateResult,
   LogEntry,
   PopupData,
   SavePatResult,
@@ -53,6 +54,9 @@ const api: AutoCreditApi = {
     ipcRenderer.invoke('pat:save', id, pat) as Promise<SavePatResult>,
   clearPat: (id: AppId) => ipcRenderer.invoke('pat:clear', id) as Promise<void>,
   detect: (id: AppId) => ipcRenderer.invoke('app:detect', id) as Promise<DetectResult>,
+  locateApp: (id: AppId) => ipcRenderer.invoke('app:locate', id) as Promise<LocateResult>,
+  pickPath: (kind: 'file' | 'directory') =>
+    ipcRenderer.invoke('path:pick', kind) as Promise<string | null>,
   probeAll: () => ipcRenderer.invoke('probe:all') as Promise<void>,
   runNow: (ids?: AppId[]) => ipcRenderer.invoke('run:now', ids) as Promise<void>,
   checkUpdates: () => ipcRenderer.invoke('update:check') as Promise<void>,

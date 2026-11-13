@@ -1461,6 +1461,41 @@ a {
   line-height: 1.5;
 }
 
+.path-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--bg);
+}
+
+.path-editor-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 11px;
+  color: var(--text-3);
+}
+
+.path-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.path-row > span {
+  flex: none;
+  width: 52px;
+  font-size: 11px;
+  color: var(--text-3);
+}
+
+.path-row .input {
+  flex: 1;
+}
+
 .auto-auth-row {
   display: flex;
   align-items: center;

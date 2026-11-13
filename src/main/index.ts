@@ -7,6 +7,7 @@ import type {
   AppId,
   DetectResult,
   GlobalSettings,
+  LocateResult,
   SavePatResult,
 } from '@shared/types'
 import { DoubaoAdapter } from './checkin/doubao'
@@ -298,6 +299,31 @@ function bootstrap(): void {
       return result
     })
 
+    ipcMain.handle('app:locate', async (_event, rawId: unknown): Promise<LocateResult> => {
+      const id = toAppId(rawId)
+      if (!id) return { ok: false, message: '未知程序' }
+      const adapter = adapters[id]
+      if (!adapter.locate) return { ok: false, message: '该程序无需配置路径' }
+      const result = adapter.locate()
+      logger.info(`${APP_META[id].name}路径自动搜索：${result.message}`, id)
+      return result
+    })
+
+    ipcMain.handle('path:pick', async (_event, rawKind: unknown): Promise<string | null> => {
+      const kind = rawKind === 'file' ? 'file' : 'directory'
+      const options: Electron.OpenDialogOptions = {
+        title: kind === 'file' ? '选择程序文件' : '选择程序或登录态目录',
+        properties: [kind === 'file' ? 'openFile' : 'openDirectory', 'dontAddToRecent'],
+      }
+      const parent = windows?.window
+      const result =
+        parent && !parent.isDestroyed()
+          ? await dialog.showOpenDialog(parent, options)
+          : await dialog.showOpenDialog(options)
+      if (result.canceled || !result.filePaths.length) return null
+      return result.filePaths[0]
+    })
+
     ipcMain.handle('probe:all', async () => {
       await scheduler.probeAll()
     })
@@ -394,5 +420,9 @@ function sanitizeAppPatch(input: unknown): Partial<AppConfig> {
   if (typeof raw.enabled === 'boolean') patch.enabled = raw.enabled
   if (typeof raw.useCustomTime === 'boolean') patch.useCustomTime = raw.useCustomTime
   if (typeof raw.time === 'string' && isValidTime(raw.time)) patch.time = raw.time
+  if (typeof raw.customPath === 'string') patch.customPath = raw.customPath.trim().slice(0, 500)
+  if (typeof raw.customExePath === 'string') {
+    patch.customExePath = raw.customExePath.trim().slice(0, 500)
+  }
   return patch
 }

@@ -1,9 +1,10 @@
 import { createDecipheriv, createHash, randomBytes, randomUUID } from 'node:crypto'
-import { existsSync, readFileSync, statSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { homedir, release } from 'node:os'
 import { join } from 'node:path'
-import type { DetectResult } from '@shared/types'
+import type { DetectResult, LocateResult } from '@shared/types'
 import { asRecord, pickNumber, pickString, request } from '../http'
+import { expandUserPath, matchingDirectories, uniquePaths } from './paths'
 import type { Adapter, AdapterDeps, Outcome, ProbeResult, Readiness } from './types'
 
 const SALT_A = Uint8Array.from([
@@ -32,17 +33,47 @@ interface TraeStorageInfo {
   machineId?: string
   ideVersion?: string
   source: string
+  custom?: boolean
 }
 
+/** 自动搜索 Roaming 下所有可能的 Trae 登录态，兼容被改名的安装目录。 */
 function storageCandidates(): string[] {
-  const roots = [process.env.APPDATA || join(homedir(), 'AppData', 'Roaming')]
-  const names = ['TRAE SOLO CN', 'Trae CN', 'Trae', 'TRAE SOLO']
-  return roots.flatMap((root) => names.map((name) => join(root, name, 'User', 'globalStorage', 'storage.json')))
+  const names = ['Trae CN', 'TRAE SOLO CN', 'Trae', 'TRAE SOLO']
+  const roots = uniquePaths([
+    process.env.APPDATA || '',
+    join(homedir(), 'AppData', 'Roaming'),
+  ])
+  const paths: string[] = []
+  for (const root of roots) {
+    paths.push(...names.map((name) => join(root, name, 'User', 'globalStorage', 'storage.json')))
+    for (const dir of matchingDirectories(root, /trae|solo/i)) {
+      paths.push(join(dir, 'User', 'globalStorage', 'storage.json'))
+    }
+    // 兜底：VS Code 系客户端的标准目录结构，避免目录名被完全本地化。
+    for (const dir of matchingDirectories(root, /./)) {
+      paths.push(join(dir, 'User', 'globalStorage', 'storage.json'))
+    }
+  }
+  return uniquePaths(paths)
+}
+
+/** 用户手动指定的路径可以是 storage.json，也可以是它的上级目录。 */
+function customStorageCandidates(customPath: string): string[] {
+  const value = expandUserPath(customPath)
+  if (!value) return []
+  if (/\.json$/i.test(value)) return [value]
+  return uniquePaths([
+    join(value, 'storage.json'),
+    join(value, 'globalStorage', 'storage.json'),
+    join(value, 'User', 'globalStorage', 'storage.json'),
+  ])
 }
 
 /** 国际版 trae.ai 没有每日签到，只有中国版 trae.cn 才需要签到。 */
 function isInternational(info: TraeStorageInfo): boolean {
   if (info.auth.host) return /trae\.ai/i.test(info.auth.host)
+  // 手动指定的路径由用户明确选择，不再按目录名推断为国际版。
+  if (info.custom) return false
   return !/[\\/](Trae CN|TRAE SOLO CN)[\\/]/.test(info.source)
 }
 
@@ -70,10 +101,14 @@ function decryptAuthValue(value: string): TraeAuth {
   return JSON.parse(payload.toString('utf8')) as TraeAuth
 }
 
-function loadStorage(): TraeStorageInfo | undefined {
-  const candidates = storageCandidates()
-    .filter((path) => existsSync(path))
-    .sort((a, b) => statSync(b).mtimeMs - statSync(a).mtimeMs)
+function loadStorage(customPath?: string): TraeStorageInfo | undefined {
+  const custom = customPath
+    ? customStorageCandidates(customPath).filter((path) => existsSync(path))
+    : []
+  const candidates = uniquePaths([
+    ...custom,
+    ...storageCandidates().filter((path) => existsSync(path)),
+  ])
 
   const infos: TraeStorageInfo[] = []
   for (const path of candidates) {
@@ -103,7 +138,7 @@ function loadStorage(): TraeStorageInfo | undefined {
       const ideVersion =
         typeof storage['iCubeLastVersion'] === 'string' ? (storage['iCubeLastVersion'] as string) : undefined
 
-      infos.push({ auth, deviceId, machineId, ideVersion, source: path })
+      infos.push({ auth, deviceId, machineId, ideVersion, source: path, custom: custom.includes(path) })
     } catch {
       // try the next client
     }
@@ -192,8 +227,21 @@ export class TraeAdapter implements Adapter {
 
   constructor(private readonly deps: AdapterDeps) {}
 
+  locate(): LocateResult {
+    const custom = this.deps.store.apps.trae.customPath
+    if (custom) {
+      const found = customStorageCandidates(custom).find((path) => existsSync(path))
+      if (found) return { ok: true, dataPath: found, message: `已找到 Trae CN 登录态：${found}` }
+    }
+    const found = storageCandidates().find((path) => existsSync(path))
+    if (!found) {
+      return { ok: false, message: '未找到 Trae CN 登录态，请手动填写 storage.json 或其所在目录' }
+    }
+    return { ok: true, dataPath: found, message: `已找到 Trae CN 登录态：${found}` }
+  }
+
   readiness(): Readiness {
-    const info = loadStorage()
+    const info = loadStorage(this.deps.store.apps.trae.customPath)
     if (!info) {
       return {
         ready: false,
@@ -210,7 +258,7 @@ export class TraeAdapter implements Adapter {
   }
 
   async detect(): Promise<DetectResult> {
-    const info = loadStorage()
+    const info = loadStorage(this.deps.store.apps.trae.customPath)
     if (!info) {
       return { ok: false, message: '未找到本机 Trae CN 登录态，请先打开并登录 Trae 客户端' }
     }
@@ -232,7 +280,7 @@ export class TraeAdapter implements Adapter {
   }
 
   async probe(): Promise<ProbeResult> {
-    const info = loadStorage()
+    const info = loadStorage(this.deps.store.apps.trae.customPath)
     if (!info) {
       return { checkedIn: false, status: 'needs-setup', message: '未找到本机 Trae CN 登录态' }
     }
@@ -284,7 +332,7 @@ export class TraeAdapter implements Adapter {
   }
 
   async checkIn(): Promise<Outcome> {
-    const info = loadStorage()
+    const info = loadStorage(this.deps.store.apps.trae.customPath)
     if (!info) {
       return { status: 'needs-setup', message: '未找到本机 Trae CN 登录态，请先登录 Trae 客户端' }
     }

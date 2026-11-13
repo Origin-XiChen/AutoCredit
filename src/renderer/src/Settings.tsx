@@ -177,6 +177,156 @@ function PatEditor({
   )
 }
 
+interface PathField {
+  key: 'customPath' | 'customExePath'
+  label: string
+  kind: 'file' | 'directory'
+  placeholder: string
+}
+
+const PATH_FIELDS: Partial<Record<AppId, PathField[]>> = {
+  trae: [
+    {
+      key: 'customPath',
+      label: '登录态',
+      kind: 'directory',
+      placeholder: '留空自动搜索，可填 storage.json 或所在目录',
+    },
+  ],
+  workbuddy: [
+    {
+      key: 'customPath',
+      label: '登录态',
+      kind: 'directory',
+      placeholder: '留空自动搜索，可填 workbuddy-desktop.info 或所在目录',
+    },
+    {
+      key: 'customExePath',
+      label: '客户端',
+      kind: 'directory',
+      placeholder: '留空自动搜索，可填 WorkBuddy.exe 或安装目录',
+    },
+  ],
+  doubao: [
+    {
+      key: 'customExePath',
+      label: '客户端',
+      kind: 'directory',
+      placeholder: '留空自动搜索，可填 Doubao.exe 或安装目录',
+    },
+  ],
+}
+
+function PathEditor({
+  id,
+  app,
+  onUpdate,
+  notify,
+}: {
+  id: AppId
+  app: AppConfig
+  onUpdate: (id: AppId, patch: Partial<AppConfig>) => void
+  notify: (text: string, tone?: 'info' | 'success' | 'error') => void
+}) {
+  const fields = PATH_FIELDS[id]
+  const [drafts, setDrafts] = useState<Record<string, string>>({})
+  const [locating, setLocating] = useState(false)
+  const [browsing, setBrowsing] = useState<string | null>(null)
+
+  useEffect(() => {
+    setDrafts({
+      customPath: app.customPath ?? '',
+      customExePath: app.customExePath ?? '',
+    })
+  }, [app.customPath, app.customExePath])
+
+  if (!fields) return null
+
+  const commit = (key: 'customPath' | 'customExePath', value: string): void => {
+    const next = value.trim()
+    if (next === (app[key] ?? '')) return
+    onUpdate(id, { [key]: next })
+  }
+
+  const browse = async (field: PathField): Promise<void> => {
+    setBrowsing(field.key)
+    try {
+      const selected = await window.autoCredit.pickPath(field.kind)
+      if (!selected) return
+      setDrafts((previous) => ({ ...previous, [field.key]: selected }))
+      commit(field.key, selected)
+    } finally {
+      setBrowsing(null)
+    }
+  }
+
+  const locate = async (): Promise<void> => {
+    setLocating(true)
+    try {
+      const result = await window.autoCredit.locateApp(id)
+      if (!result.ok) {
+        notify(result.message, 'error')
+        return
+      }
+      const patch: Partial<AppConfig> = {}
+      if (result.dataPath && fields.some((field) => field.key === 'customPath')) {
+        patch.customPath = result.dataPath
+      }
+      if (result.exePath && fields.some((field) => field.key === 'customExePath')) {
+        patch.customExePath = result.exePath
+      }
+      if (!Object.keys(patch).length) {
+        notify('未找到可用的路径，请手动填写', 'error')
+        return
+      }
+      onUpdate(id, patch)
+      notify(result.message, 'success')
+    } finally {
+      setLocating(false)
+    }
+  }
+
+  return (
+    <div className="path-editor">
+      <div className="path-editor-head">
+        <span>路径（留空时自动检测）</span>
+        <button className="btn ghost sm" onClick={() => void locate()} disabled={locating}>
+          <IconRefresh className={locating ? 'spin' : undefined} />
+          {locating ? '搜索中…' : '自动搜索'}
+        </button>
+      </div>
+      {fields.map((field) => (
+        <div className="path-row" key={field.key}>
+          <span>{field.label}</span>
+          <input
+            className="input"
+            value={drafts[field.key] ?? ''}
+            placeholder={field.placeholder}
+            spellCheck={false}
+            onChange={(event) =>
+              setDrafts((previous) => ({ ...previous, [field.key]: event.target.value }))
+            }
+            onBlur={(event) => commit(field.key, event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key !== 'Enter') return
+              event.preventDefault()
+              commit(field.key, (event.target as HTMLInputElement).value)
+            }}
+          />
+          <button
+            className="btn ghost sm"
+            onClick={() => void browse(field)}
+            disabled={browsing === field.key}
+          >
+            <IconFolder />
+            浏览
+          </button>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export default function SettingsPage({
   state,
   tab,
@@ -406,6 +556,8 @@ export default function SettingsPage({
                 </div>
 
                 {meta.note && <p className="app-note">{meta.note}</p>}
+
+                <PathEditor id={id} app={app} onUpdate={onUpdateApp} notify={notify} />
 
                 {meta.autoAuth ? (
                   <div className="auto-auth-row">

@@ -1,4 +1,4 @@
-import type { AppId, DetectResult, RunStatus } from '@shared/types'
+import type { AppId, DetectResult, LocateResult, RunStatus } from '@shared/types'
 import type { Store } from '../store'
 
 export type OutcomeStatus =
@@ -32,6 +32,8 @@ export interface Adapter {
   detect(): Promise<DetectResult>
   probe(): Promise<ProbeResult>
   checkIn(): Promise<Outcome>
+  /** 自动搜索本机程序或登录态路径，供设置页手动修正。 */
+  locate?(): LocateResult
 }
 
 export interface AdapterDeps {

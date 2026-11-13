@@ -2,8 +2,9 @@ import { spawn } from 'node:child_process'
 import { existsSync, readdirSync } from 'node:fs'
 import { get as httpGet } from 'node:http'
 import { join } from 'node:path'
-import type { DetectResult } from '@shared/types'
+import type { DetectResult, LocateResult } from '@shared/types'
 import { asRecord, pickNumber, pickString } from '../http'
+import { expandUserPath, matchingDirectories, uniquePaths } from './paths'
 import type { Adapter, AdapterDeps, Outcome, ProbeResult, Readiness } from './types'
 
 const DEBUG_PORT = 9222
@@ -209,7 +210,22 @@ export class DoubaoAdapter implements Adapter {
 
   constructor(private readonly deps: AdapterDeps) {}
 
+  private customExecutableCandidates(): string[] {
+    const custom = this.deps.store.apps.doubao.customExePath
+    if (!custom) return []
+    const value = expandUserPath(custom)
+    if (/\.exe$/i.test(value)) return [value]
+    return uniquePaths([
+      join(value, 'Doubao.exe'),
+      join(value, 'Application', 'Doubao.exe'),
+      join(value, 'Doubao', 'Application', 'Doubao.exe'),
+    ])
+  }
+
   private findExecutable(): string | undefined {
+    for (const candidate of this.customExecutableCandidates()) {
+      if (existsSync(candidate)) return candidate
+    }
     const local = process.env.LOCALAPPDATA || ''
     const programFiles = process.env.ProgramFiles || 'C:\\Program Files'
     const programFilesX86 = process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)'
@@ -222,13 +238,22 @@ export class DoubaoAdapter implements Adapter {
     for (const candidate of candidates) {
       if (existsSync(candidate)) return candidate
     }
-    for (const root of [join(local, 'Programs'), programFiles, programFilesX86]) {
+    for (const root of uniquePaths([join(local, 'Programs'), programFiles, programFilesX86, local])) {
+      for (const dir of matchingDirectories(root, /doubao/i)) {
+        for (const exe of [
+          join(dir, 'Application', 'Doubao.exe'),
+          join(dir, 'Doubao.exe'),
+          join(dir, 'Doubao', 'Application', 'Doubao.exe'),
+        ]) {
+          if (existsSync(exe)) return exe
+        }
+      }
       try {
         for (const name of readdirSync(root)) {
-          if (!/doubao/i.test(name)) continue
+          const base = join(root, name)
           for (const exe of [
-            join(root, name, 'Application', 'Doubao.exe'),
-            join(root, name, 'Doubao.exe'),
+            join(base, 'Application', 'Doubao.exe'),
+            join(base, 'Doubao.exe'),
           ]) {
             if (existsSync(exe)) return exe
           }
@@ -238,6 +263,14 @@ export class DoubaoAdapter implements Adapter {
       }
     }
     return undefined
+  }
+
+  locate(): LocateResult {
+    const exe = this.findExecutable()
+    if (!exe) {
+      return { ok: false, message: '未找到豆包客户端，请手动填写 Doubao.exe 或其安装目录' }
+    }
+    return { ok: true, exePath: exe, message: `已找到豆包客户端：${exe}` }
   }
 
   private async openPage(targets?: CdpTarget[]): Promise<CdpSession | undefined> {
@@ -394,7 +427,7 @@ export class DoubaoAdapter implements Adapter {
     if (await fetchTargets(800)) return { ok: true, message: '' }
     const executable = this.findExecutable()
     if (!executable) {
-      return { ok: false, message: '未找到豆包桌面端，请先安装并登录豆包' }
+      return { ok: false, message: '未找到豆包桌面端，请先安装并登录豆包，或在设置中填写客户端路径' }
     }
     try {
       const child = spawn(executable, [`--remote-debugging-port=${DEBUG_PORT}`], {
@@ -425,7 +458,7 @@ export class DoubaoAdapter implements Adapter {
       return { ready: false, message: '豆包签到属于实验功能，请先在设置中开启开发者模式' }
     }
     if (!this.findExecutable()) {
-      return { ready: false, message: '未找到豆包桌面端，请先安装并登录豆包' }
+      return { ready: false, message: '未找到豆包桌面端，请先安装并登录豆包，或在设置中填写客户端路径' }
     }
     return { ready: true, message: '已找到豆包客户端，签到时会自动启动' }
   }
@@ -435,7 +468,7 @@ export class DoubaoAdapter implements Adapter {
       return { ok: false, message: '请先在设置中开启开发者模式' }
     }
     if (!this.findExecutable()) {
-      return { ok: false, message: '未找到豆包桌面端，请先安装并登录豆包' }
+      return { ok: false, message: '未找到豆包桌面端，请先安装并登录豆包，或在设置中填写客户端路径' }
     }
     const session = await this.openPage()
     if (!session) {
@@ -477,7 +510,7 @@ export class DoubaoAdapter implements Adapter {
       return { status: 'unavailable', message: '开发者模式未开启' }
     }
     if (!this.findExecutable()) {
-      return { status: 'needs-setup', message: '未找到豆包桌面端，请先安装并登录豆包' }
+      return { status: 'needs-setup', message: '未找到豆包桌面端，请先安装并登录豆包，或在设置中填写客户端路径' }
     }
 
     const debug = await this.ensureDebugPort()

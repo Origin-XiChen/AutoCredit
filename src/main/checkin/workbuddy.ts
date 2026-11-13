@@ -1,8 +1,9 @@
 import { spawn } from 'node:child_process'
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import type { DetectResult } from '@shared/types'
+import type { DetectResult, LocateResult } from '@shared/types'
 import { asRecord, pickNumber, pickString, request } from '../http'
+import { expandUserPath, matchingDirectories, uniquePaths } from './paths'
 import type { Adapter, AdapterDeps, Outcome, ProbeResult, Readiness } from './types'
 
 interface Credential {
@@ -82,41 +83,113 @@ export class WorkBuddyAdapter implements Adapter {
 
   constructor(private readonly deps: AdapterDeps) {}
 
+  locate(): LocateResult {
+    const exe = this.findExecutable()
+    const data = this.findCredentialFile()
+    if (!exe && !data) {
+      return {
+        ok: false,
+        message: '未找到 WorkBuddy 客户端或登录态，请手动填写安装目录或登录态路径',
+      }
+    }
+    return {
+      ok: true,
+      exePath: exe,
+      dataPath: data,
+      message: exe ? `已找到 WorkBuddy 客户端：${exe}` : `已找到 WorkBuddy 登录态：${data}`,
+    }
+  }
+
+  private customCredentialCandidates(): string[] {
+    const custom = this.deps.store.apps.workbuddy.customPath
+    if (!custom) return []
+    const value = expandUserPath(custom)
+    if (/\.(info|json)$/i.test(value)) return [value]
+    return uniquePaths([
+      join(value, 'workbuddy-desktop.info'),
+      join(value, 'auth', 'workbuddy-desktop.info'),
+      join(value, 'Public', 'auth', 'workbuddy-desktop.info'),
+      join(value, 'Data', 'Public', 'auth', 'workbuddy-desktop.info'),
+    ])
+  }
+
   private credentialCandidates(): string[] {
     const local = process.env.LOCALAPPDATA || ''
     const roaming = process.env.APPDATA || ''
-    return [
+    const paths = [
       join(local, 'CodeBuddyExtension', 'Data', 'Public', 'auth', 'workbuddy-desktop.info'),
       join(roaming, 'CodeBuddyExtension', 'Data', 'Public', 'auth', 'workbuddy-desktop.info'),
     ]
+    for (const root of uniquePaths([local, roaming])) {
+      for (const dir of matchingDirectories(root, /codebuddy|workbuddy/i)) {
+        paths.push(
+          join(dir, 'Data', 'Public', 'auth', 'workbuddy-desktop.info'),
+          join(dir, 'Public', 'auth', 'workbuddy-desktop.info'),
+          join(dir, 'auth', 'workbuddy-desktop.info'),
+        )
+      }
+    }
+    return uniquePaths(paths)
   }
 
   private findCredentialFile(): string | undefined {
+    for (const path of this.customCredentialCandidates()) {
+      if (existsSync(path)) return path
+    }
     return this.credentialCandidates()
       .filter((path) => existsSync(path))
       .sort((a, b) => statSync(b).mtimeMs - statSync(a).mtimeMs)[0]
   }
 
+  private customExecutableCandidates(): string[] {
+    const custom = this.deps.store.apps.workbuddy.customExePath
+    if (!custom) return []
+    const value = expandUserPath(custom)
+    if (/\.exe$/i.test(value)) return [value]
+    return uniquePaths([
+      join(value, 'WorkBuddy.exe'),
+      join(value, 'WorkBuddy', 'WorkBuddy.exe'),
+      join(value, 'Application', 'WorkBuddy.exe'),
+    ])
+  }
+
   private findExecutable(): string | undefined {
+    for (const candidate of this.customExecutableCandidates()) {
+      if (existsSync(candidate)) return candidate
+    }
     const local = process.env.LOCALAPPDATA || ''
     const programFiles = process.env.ProgramFiles || 'C:\\Program Files'
+    const programFilesX86 = process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)'
+    const roots = uniquePaths([join(local, 'Programs'), programFiles, programFilesX86, local])
     const candidates = [
       join(local, 'Programs', 'WorkBuddy', 'WorkBuddy.exe'),
       join(programFiles, 'WorkBuddy', 'WorkBuddy.exe'),
+      join(programFilesX86, 'WorkBuddy', 'WorkBuddy.exe'),
     ]
     for (const candidate of candidates) {
       if (existsSync(candidate)) return candidate
     }
-    try {
-      for (const root of [join(local, 'Programs'), programFiles]) {
-        for (const name of readdirSync(root)) {
-          if (!/workbuddy/i.test(name)) continue
-          const candidate = join(root, name, 'WorkBuddy.exe')
-          if (existsSync(candidate)) return candidate
+    for (const root of roots) {
+      for (const dir of matchingDirectories(root, /workbuddy|codebuddy/i)) {
+        for (const exe of [
+          join(dir, 'WorkBuddy.exe'),
+          join(dir, 'WorkBuddy', 'WorkBuddy.exe'),
+          join(dir, 'Application', 'WorkBuddy.exe'),
+        ]) {
+          if (existsSync(exe)) return exe
         }
       }
-    } catch {
-      // ignore
+      // 兜底：安装目录名完全不带 WorkBuddy 时，按可执行文件名扫描一层。
+      try {
+        for (const name of readdirSync(root)) {
+          const base = join(root, name)
+          for (const exe of [join(base, 'WorkBuddy.exe'), join(base, 'WorkBuddy', 'WorkBuddy.exe')]) {
+            if (existsSync(exe)) return exe
+          }
+        }
+      } catch {
+        // ignore unreadable roots
+      }
     }
     return undefined
   }
@@ -137,7 +210,7 @@ export class WorkBuddyAdapter implements Adapter {
 
   private async decryptViaClient(file: string): Promise<Credential> {
     const exe = this.findExecutable()
-    if (!exe) throw new Error('未找到 WorkBuddy 客户端安装目录')
+    if (!exe) throw new Error('未找到 WorkBuddy 客户端，请在设置中填写客户端路径')
     const helper = this.ensureHelper()
     const output = await new Promise<string>((resolve, reject) => {
       const child = spawn(exe, [helper, file], {
