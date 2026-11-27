@@ -376,9 +376,9 @@ export default function App() {
             <div className="modal-mark">
               <IconBolt size={24} />
             </div>
-            <h2>已迁移到新版本</h2>
+            <h2>{migration.version} 预览版已发布</h2>
             <p>
-              AutoCredit {migration.version} 起改用更轻量的新架构，功能与配置保持一致。安装程序会自动卸载旧版，并保留签到记录。
+              抢先体验更轻量的新架构，功能与配置保持一致。安装程序会自动卸载旧版 Electron，并保留配置与签到记录。
             </p>
             {(migration.phase === 'migration-downloading' || migration.phase === 'error') && (
               <p className={`modal-status${migration.phase === 'error' ? ' error' : ''}`}>
@@ -404,7 +404,7 @@ export default function App() {
                     .finally(() => setMigrationBusy(false))
                 }}
               >
-                {migrationBusy ? '正在准备…' : '立即升级'}
+                {migrationBusy ? '正在准备…' : '抢先升级'}
               </button>
             </div>
           </div>

@@ -51,7 +51,7 @@ export function announceMigration(manual = false): boolean {
   emit({
     phase: 'migration',
     version: TARGET_VERSION,
-    message: `AutoCredit ${TARGET_VERSION} 已发布：改用更轻量的新架构，功能与配置保持一致。`,
+    message: `AutoCredit ${TARGET_VERSION} 预览版已发布：改用更轻量的新架构，功能与配置保持一致，可抢先体验。`,
   })
   return true
 }
