@@ -23,14 +23,14 @@
 | 项目 | 值 |
 | --- | --- |
 | 名称 | AutoCredit |
-| 当前版本 | **1.1.4** |
+| 当前版本 | **1.1.5** |
 | 平台 | Windows 10 / 11 桌面应用 |
 | 技术栈 | Electron 45 + electron-vite 6 + React 19 + TypeScript + electron-builder 26 + electron-updater |
 | 仓库 | https://github.com/Origin-XiChen/AutoCredit |
 | 分支 | `main` |
 | 许可证 | GPL-3.0-only |
 | 安装包产物 | `release/AutoCredit-<version>-Setup.exe`、`.blockmap`、`latest.yml` |
-| 最后更新 | 2026-11-13 |
+| 最后更新 | 2026-11-27 |
 
 产品定位：每天在 **Trae CN、Qoder、Qoder CN、WorkBuddy** 上自动签到并领取积分。豆包为默认隐藏的实验功能，仅在设置中开启开发者模式后可见。
 
@@ -71,6 +71,7 @@
   - 位置：距屏幕右侧 **18px**，距任务栏 **24px**，确保四角完整可见。
   - 高度随程序数量动态变化，不得留固定空白。
   - 卡片必须使用 `box-sizing: border-box`，防止 padding 导致底部圆角被裁切。
+  - 设置中的 `showCheckinPopup` 必须能关闭该提醒；关闭后定时签到直接静默执行，不再创建弹窗窗口。
 - 更新反馈必须使用应用内状态条/弹窗，不要再用系统 `dialog.showMessageBox`。
 
 ### 2.4 启动、托盘与卸载
@@ -206,6 +207,7 @@ src/
 | 1.1.2 | Qoder / Qoder CN 签到日改为 10:00 起算，修复前一日状态被误判为当天已完成导致的漏签 |
 | 1.1.3 | 更新结果改为应用内状态条与自绘弹窗，移除系统对话框；NSIS 安装向导加入品牌图标、横幅与侧栏 |
 | 1.1.4 | 设置页支持为 Trae CN、WorkBuddy、豆包手动填写/浏览/自动搜索路径；自动搜索兼容非默认安装目录，自定义路径无效时自动回退 |
+| 1.1.5 | 设置新增「签到提醒窗口」开关（`showCheckinPopup`），关闭后静默签到；精简 Electron 语言包与冗余运行时依赖，减小安装体积 |
 
 ---
 

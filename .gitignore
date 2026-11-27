@@ -3,6 +3,7 @@ out/
 release/
 dist/
 coverage/
+.screenshots/
 
 *.log
 *.tsbuildinfo
