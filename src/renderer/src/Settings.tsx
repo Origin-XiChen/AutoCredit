@@ -439,6 +439,16 @@ export default function SettingsPage({
                 label="关闭窗口时最小化到托盘"
               />
             </Row>
+            <Row
+              title="签到提醒窗口"
+              description="签到前在屏幕右下角显示 10 秒倒计时，可取消本次签到；关闭后将直接静默签到。"
+            >
+              <Switch
+                checked={settings.showCheckinPopup}
+                onChange={(showCheckinPopup) => onUpdateSettings({ showCheckinPopup })}
+                label="显示签到提醒窗口"
+              />
+            </Row>
           </Section>
 
           <Section title="签到时间" description="程序读取系统时间。错过签到时间后，只要电脑处于唤醒状态就会立即补签。">

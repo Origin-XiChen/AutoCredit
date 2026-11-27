@@ -64,6 +64,7 @@ export const DEFAULT_SETTINGS: GlobalSettings = {
   autoLaunch: false,
   startMinimized: true,
   closeToTray: true,
+  showCheckinPopup: true,
   theme: 'system',
   logRetentionDays: 14,
   developerMode: false,

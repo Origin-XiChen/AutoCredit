@@ -399,6 +399,7 @@ function sanitizeSettings(input: unknown): Partial<GlobalSettings> {
   if (typeof raw.autoLaunch === 'boolean') patch.autoLaunch = raw.autoLaunch
   if (typeof raw.startMinimized === 'boolean') patch.startMinimized = raw.startMinimized
   if (typeof raw.closeToTray === 'boolean') patch.closeToTray = raw.closeToTray
+  if (typeof raw.showCheckinPopup === 'boolean') patch.showCheckinPopup = raw.showCheckinPopup
   if (typeof raw.defaultTime === 'string' && isValidTime(raw.defaultTime)) {
     patch.defaultTime = raw.defaultTime
   }

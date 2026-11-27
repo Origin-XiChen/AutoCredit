@@ -230,26 +230,30 @@ export class Scheduler {
     if (!ready.length) return
 
     const names = ready.map((id) => APP_META[id].name).join('、')
-    const notification = await getNotificationState(true)
-    if (notification.suppressed) {
-      this.options.logger.info(
-        `检测到${notification.reason || '全屏 / 忙碌状态'}，本次静默签到，不弹出提醒`,
-      )
+    if (!this.options.store.settings.showCheckinPopup) {
+      this.options.logger.info(`签到提醒窗口已关闭，直接为 ${names} 签到`)
     } else {
-      this.options.logger.info(`即将为 ${names} 签到，10 秒倒计时开始`)
-      const cancelled = await this.options.popup.show(ready)
-      if (cancelled) {
-        for (const id of ready) {
-          this.options.store.updateRuntime(id, {
-            status: 'cancelled',
-            message: '今日签到已被取消，可在总览中手动签到',
-            lastAttemptDate: this.dateKeyFor(id),
-            lastAttemptAt: new Date().toISOString(),
-          })
+      const notification = await getNotificationState(true)
+      if (notification.suppressed) {
+        this.options.logger.info(
+          `检测到${notification.reason || '全屏 / 忙碌状态'}，本次静默签到，不弹出提醒`,
+        )
+      } else {
+        this.options.logger.info(`即将为 ${names} 签到，10 秒倒计时开始`)
+        const cancelled = await this.options.popup.show(ready)
+        if (cancelled) {
+          for (const id of ready) {
+            this.options.store.updateRuntime(id, {
+              status: 'cancelled',
+              message: '今日签到已被取消，可在总览中手动签到',
+              lastAttemptDate: this.dateKeyFor(id),
+              lastAttemptAt: new Date().toISOString(),
+            })
+          }
+          this.options.logger.info(`已取消今日 ${names} 的签到`)
+          this.options.onChange()
+          return
         }
-        this.options.logger.info(`已取消今日 ${names} 的签到`)
-        this.options.onChange()
-        return
       }
     }
 

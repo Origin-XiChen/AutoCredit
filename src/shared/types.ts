@@ -46,6 +46,8 @@ export interface GlobalSettings {
   autoLaunch: boolean
   startMinimized: boolean
   closeToTray: boolean
+  /** 签到前是否显示右下角倒计时提醒窗口。 */
+  showCheckinPopup: boolean
   theme: ThemeMode
   logRetentionDays: number
   developerMode: boolean
