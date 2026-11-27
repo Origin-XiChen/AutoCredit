@@ -6,6 +6,8 @@ import { getNotificationState } from './fullscreen'
 
 const POPUP_BOTTOM_GAP = 24
 
+export type PopupOutcome = 'cancelled' | 'started' | 'skipped'
+
 interface WindowManagerOptions {
   preload: string
 }
@@ -18,9 +20,10 @@ export class WindowManager {
   private mainWindow: BrowserWindow | null = null
   private popupWindow: BrowserWindow | null = null
   private popupData: PopupData | null = null
-  private popupResolve: ((cancelled: boolean) => void) | null = null
+  private popupResolve: ((outcome: PopupOutcome) => void) | null = null
   private popupTimer: NodeJS.Timeout | null = null
   private popupGuardTimer: NodeJS.Timeout | null = null
+  private popupPhase: 'countdown' | 'running' | 'success' | 'error' = 'countdown'
   private quitting = false
 
   constructor(private readonly options: WindowManagerOptions) {}
@@ -104,13 +107,15 @@ export class WindowManager {
   }
 
   /**
-   * Shows the 10 second countdown. Resolves `true` when the user cancelled,
-   * `false` when the countdown expired or the popup must be skipped.
+   * Shows the 10 second countdown. Resolves `cancelled` when the user cancelled,
+   * `started` when the countdown expired (popup stays open for check-in progress),
+   * and `skipped` when no popup can be shown.
    */
-  showPopup(ids: AppId[]): Promise<boolean> {
-    if (!ids.length) return Promise.resolve(false)
-    if (this.popupResolve) return Promise.resolve(false)
+  showPopup(ids: AppId[]): Promise<PopupOutcome> {
+    if (!ids.length) return Promise.resolve('skipped')
+    if (this.popupResolve || this.popupWindow) return Promise.resolve('skipped')
 
+    this.popupPhase = 'countdown'
     const apps = ids.map((id) => ({ id, name: APP_META[id].name }))
     this.popupData = { apps, seconds: POPUP_SECONDS }
 
@@ -148,15 +153,15 @@ export class WindowManager {
 
     void this.load(window, 'popup.html')
 
-    return new Promise<boolean>((resolve) => {
+    return new Promise<PopupOutcome>((resolve) => {
       this.popupResolve = resolve
-      this.popupTimer = setTimeout(() => this.settlePopup(false), POPUP_SECONDS * 1000)
+      this.popupTimer = setTimeout(() => this.startPopup(), POPUP_SECONDS * 1000)
 
       // If a fullscreen app starts during the countdown, stay quiet and proceed.
       const guard = async (): Promise<void> => {
         const state = await getNotificationState(true)
         if (state.suppressed && this.popupResolve) {
-          this.settlePopup(false)
+          this.settlePopup('skipped')
         }
       }
       this.popupGuardTimer = setTimeout(() => {
@@ -168,9 +173,36 @@ export class WindowManager {
 
       window.on('closed', () => {
         if (this.popupWindow === window) this.popupWindow = null
-        if (this.popupResolve) this.settlePopup(false)
+        if (this.popupResolve) this.settlePopup('skipped')
       })
     })
+  }
+
+  private startPopup(): void {
+    const resolve = this.popupResolve
+    if (!resolve || !this.popupWindow || this.popupWindow.isDestroyed()) return
+    this.popupResolve = null
+    this.popupData = null
+    this.clearPopupTimers()
+    this.popupPhase = 'running'
+    this.popupWindow.webContents.send('popup:phase', { phase: 'running' })
+    resolve('started')
+  }
+
+  /** Called after check-ins finish to show the result and close the popup. */
+  async finishPopup(success: boolean): Promise<void> {
+    const window = this.popupWindow
+    if (!window || window.isDestroyed()) return
+    this.popupPhase = success ? 'success' : 'error'
+    window.webContents.send('popup:phase', { phase: this.popupPhase })
+    await new Promise((resolve) => setTimeout(resolve, 1100))
+    this.popupWindow = null
+    if (!window.isDestroyed()) {
+      window.webContents.send('popup:dismiss')
+      setTimeout(() => {
+        if (!window.isDestroyed()) window.destroy()
+      }, 180)
+    }
   }
 
   private positionPopup(window: BrowserWindow): void {
@@ -188,18 +220,23 @@ export class WindowManager {
   }
 
   cancelPopup(): void {
-    this.settlePopup(true)
+    if (this.popupPhase !== 'countdown') return
+    this.settlePopup('cancelled')
   }
 
-  private settlePopup(cancelled: boolean): void {
-    if (!this.popupResolve) return
-    const resolve = this.popupResolve
-    this.popupResolve = null
-    this.popupData = null
+  private clearPopupTimers(): void {
     if (this.popupTimer) clearTimeout(this.popupTimer)
     if (this.popupGuardTimer) clearTimeout(this.popupGuardTimer)
     this.popupTimer = null
     this.popupGuardTimer = null
+  }
+
+  private settlePopup(outcome: PopupOutcome): void {
+    const resolve = this.popupResolve
+    if (!resolve) return
+    this.popupResolve = null
+    this.popupData = null
+    this.clearPopupTimers()
 
     const window = this.popupWindow
     this.popupWindow = null
@@ -209,7 +246,7 @@ export class WindowManager {
         if (!window.isDestroyed()) window.destroy()
       }, 180)
     }
-    resolve(cancelled)
+    resolve(outcome)
   }
 
   private async load(window: BrowserWindow, entry: string): Promise<void> {

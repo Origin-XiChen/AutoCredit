@@ -106,6 +106,10 @@ export interface PopupData {
   seconds: number
 }
 
+export interface PopupPhasePayload {
+  phase: 'running' | 'success' | 'error'
+}
+
 export interface DetectResult {
   ok: boolean
   message: string
@@ -131,7 +135,15 @@ export interface AppInfo {
   isPackaged: boolean
 }
 
-export type UpdatePhase = 'checking' | 'latest' | 'available' | 'ready' | 'error' | 'blocked'
+export type UpdatePhase =
+  | 'checking'
+  | 'latest'
+  | 'available'
+  | 'ready'
+  | 'error'
+  | 'blocked'
+  | 'migration'
+  | 'migration-downloading'
 
 export interface UpdateStatus {
   phase: UpdatePhase
@@ -157,11 +169,13 @@ export interface AutoCreditApi {
   onUpdateStatus(callback: (status: UpdateStatus) => void): () => void
   onOpenSettingsAbout(callback: () => void): () => void
   installUpdate(): Promise<void>
+  installMigration(): Promise<void>
   getLogs(): Promise<LogEntry[]>
   clearLogs(): Promise<void>
   exportLogs(): Promise<string | null>
   getPopupData(): Promise<PopupData | null>
   onPopupDismiss(callback: () => void): () => void
+  onPopupPhase?(callback: (payload: PopupPhasePayload) => void): () => void
   popupCancel(): void
   openExternal(url: string): Promise<void>
   openPath(path: string): Promise<void>

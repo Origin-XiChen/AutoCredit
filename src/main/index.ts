@@ -9,6 +9,7 @@ import type {
   GlobalSettings,
   LocateResult,
   SavePatResult,
+  UpdateStatus,
 } from '@shared/types'
 import { DoubaoAdapter } from './checkin/doubao'
 import { QoderAdapter } from './checkin/qoder'
@@ -17,6 +18,7 @@ import type { Adapter } from './checkin/types'
 import { WorkBuddyAdapter } from './checkin/workbuddy'
 import { isValidTime, localDateKey } from './date'
 import { Logger } from './logger'
+import { initMigration, installMigration } from './migration'
 import { Scheduler } from './scheduler'
 import { Store } from './store'
 import { TrayController } from './tray'
@@ -24,6 +26,14 @@ import { checkForUpdates, initUpdater, installUpdate, setAllowPrerelease } from 
 import { WindowManager } from './windows'
 
 app.setAppUserModelId('com.xichen.autocredit')
+
+if (process.env['AUTOCREDIT_DEBUG_PORT']) {
+  app.commandLine.appendSwitch('remote-debugging-port', process.env['AUTOCREDIT_DEBUG_PORT'])
+}
+
+if (process.env['AUTOCREDIT_USER_DATA_DIR']) {
+  app.setPath('userData', process.env['AUTOCREDIT_USER_DATA_DIR'])
+}
 
 const hasLock = app.requestSingleInstanceLock()
 if (!hasLock) {
@@ -122,7 +132,10 @@ function bootstrap(): void {
       store,
       logger,
       adapters,
-      popup: { show: (ids) => windows.showPopup(ids) },
+      popup: {
+        show: (ids) => windows.showPopup(ids),
+        finishPopup: (success) => windows.finishPopup(success),
+      },
       onChange: broadcastState,
     })
 
@@ -151,11 +164,15 @@ function bootstrap(): void {
     registerIpc()
     scheduler.start()
 
+    const sendStatus = (status: UpdateStatus): void => {
+      windows.window?.webContents.send('update:status', status)
+    }
+    initMigration({ logger, sendStatus })
     initUpdater({
       logger,
       allowPrerelease: store.settings.allowPrerelease,
       onBeforeInstall: () => windows.setQuitting(true),
-      sendStatus: (status) => windows.window?.webContents.send('update:status', status),
+      sendStatus,
     })
 
     powerMonitor.on('resume', () => {
@@ -334,6 +351,10 @@ function bootstrap(): void {
 
     ipcMain.handle('update:install', async () => {
       installUpdate()
+    })
+
+    ipcMain.handle('migration:install', async () => {
+      await installMigration()
     })
 
     ipcMain.handle('run:now', async (_event, rawIds: unknown) => {

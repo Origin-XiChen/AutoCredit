@@ -61,6 +61,7 @@ const api: AutoCreditApi = {
   runNow: (ids?: AppId[]) => ipcRenderer.invoke('run:now', ids) as Promise<void>,
   checkUpdates: () => ipcRenderer.invoke('update:check') as Promise<void>,
   installUpdate: () => ipcRenderer.invoke('update:install') as Promise<void>,
+  installMigration: () => ipcRenderer.invoke('migration:install') as Promise<void>,
   getLogs: () => ipcRenderer.invoke('logs:get') as Promise<LogEntry[]>,
   clearLogs: () => ipcRenderer.invoke('logs:clear') as Promise<void>,
   exportLogs: () => ipcRenderer.invoke('logs:export') as Promise<string | null>,
@@ -70,6 +71,16 @@ const api: AutoCreditApi = {
     ipcRenderer.on('popup:dismiss', listener)
     return () => {
       ipcRenderer.removeListener('popup:dismiss', listener)
+    }
+  },
+  onPopupPhase: (callback) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      payload: { phase: 'running' | 'success' | 'error' },
+    ): void => callback(payload)
+    ipcRenderer.on('popup:phase', listener)
+    return () => {
+      ipcRenderer.removeListener('popup:phase', listener)
     }
   },
   popupCancel: () => ipcRenderer.send('popup:cancel'),

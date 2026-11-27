@@ -5,13 +5,15 @@ import { checkinDateKey, isTimeReached, localDateKey } from './date'
 import { getNotificationState } from './fullscreen'
 import type { Logger } from './logger'
 import type { Store } from './store'
+import type { PopupOutcome } from './windows'
 
 const TICK_MS = 15_000
 const RETRY_MS = 10 * 60_000
 const MAX_ATTEMPTS = 3
 
 export interface PopupPresenter {
-  show(ids: AppId[]): Promise<boolean>
+  show(ids: AppId[]): Promise<PopupOutcome>
+  finishPopup(success: boolean): Promise<void>
 }
 
 interface SchedulerOptions {
@@ -230,6 +232,7 @@ export class Scheduler {
     if (!ready.length) return
 
     const names = ready.map((id) => APP_META[id].name).join('、')
+    let popupOutcome: PopupOutcome = 'skipped'
     if (!this.options.store.settings.showCheckinPopup) {
       this.options.logger.info(`签到提醒窗口已关闭，直接为 ${names} 签到`)
     } else {
@@ -240,8 +243,8 @@ export class Scheduler {
         )
       } else {
         this.options.logger.info(`即将为 ${names} 签到，10 秒倒计时开始`)
-        const cancelled = await this.options.popup.show(ready)
-        if (cancelled) {
+        popupOutcome = await this.options.popup.show(ready)
+        if (popupOutcome === 'cancelled') {
           for (const id of ready) {
             this.options.store.updateRuntime(id, {
               status: 'cancelled',
@@ -257,13 +260,18 @@ export class Scheduler {
       }
     }
 
+    let allOk = true
     for (const id of ready) {
-      await this.execute(id)
+      const status = await this.execute(id)
+      if (status !== 'success' && status !== 'already') allOk = false
+    }
+    if (popupOutcome === 'started') {
+      await this.options.popup.finishPopup(allOk)
     }
     this.options.onChange()
   }
 
-  private async execute(id: AppId): Promise<void> {
+  private async execute(id: AppId): Promise<Outcome['status']> {
     const startedAt = new Date()
     const today = this.dateKeyFor(id)
     const attempts = this.attemptsFor(id) + 1
@@ -287,6 +295,7 @@ export class Scheduler {
       }
     }
     this.applyOutcome(id, outcome, attempts)
+    return outcome.status
   }
 
   private applyOutcome(id: AppId, outcome: Outcome, attempts: number): void {

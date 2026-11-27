@@ -2,6 +2,7 @@ import { app } from 'electron'
 import { autoUpdater } from 'electron-updater'
 import type { UpdateStatus } from '@shared/types'
 import type { Logger } from './logger'
+import { announceMigration } from './migration'
 
 interface UpdaterOptions {
   logger: Logger
@@ -72,11 +73,14 @@ export function initUpdater(options: UpdaterOptions): void {
   })
 
   setTimeout(() => {
+    if (announceMigration(false)) return
     void checkForUpdates(false)
   }, 10_000)
 }
 
 export async function checkForUpdates(manual = false): Promise<void> {
+  if (announceMigration(manual)) return
+
   if (!app.isPackaged) {
     if (manual) emitStatus({ phase: 'blocked', message: '开发模式下不检查更新' })
     return

@@ -4,7 +4,7 @@ import type { SettingsTab } from './Settings'
 import SettingsPage from './Settings'
 import LogsPage from './Logs'
 import Overview from './Overview'
-import { IconHome, IconLogs, IconSettings, IconCheck } from './ui'
+import { IconHome, IconLogs, IconSettings, IconCheck, IconBolt } from './ui'
 
 type Page = 'overview' | 'logs' | 'settings'
 
@@ -26,6 +26,8 @@ export default function App() {
   const [detecting, setDetecting] = useState<AppId | null>(null)
   const [probing, setProbing] = useState(false)
   const [updateReady, setUpdateReady] = useState<UpdateStatus | null>(null)
+  const [migration, setMigration] = useState<UpdateStatus | null>(null)
+  const [migrationBusy, setMigrationBusy] = useState(false)
   const toastId = useRef(0)
 
   useEffect(() => {
@@ -46,6 +48,17 @@ export default function App() {
     })
     const offUpdate = window.autoCredit.onUpdateStatus((status) => {
       if (status.phase === 'ready') setUpdateReady(status)
+      if (status.phase === 'migration') {
+        setMigration(status)
+      } else if (status.phase === 'migration-downloading') {
+        setMigration((previous) =>
+          previous ? { ...previous, phase: status.phase, message: status.message } : status,
+        )
+      } else if (status.phase === 'error') {
+        setMigration((previous) =>
+          previous ? { ...previous, phase: 'error', message: status.message } : previous,
+        )
+      }
     })
     const offAbout = window.autoCredit.onOpenSettingsAbout(() => {
       setPage('settings')
@@ -167,7 +180,7 @@ export default function App() {
   return (
     <div className="window">
       <div className="shell">
-        <header className="titlebar" onDoubleClick={() => window.autoCredit.windowMaximize()}>
+        <header className="titlebar" data-tauri-drag-region onDoubleClick={() => window.autoCredit.windowMaximize()}>
           <div className="traffic">
             <button className="traffic-btn close" aria-label="关闭" onClick={() => window.autoCredit.windowClose()}>
               <span>✕</span>
@@ -179,8 +192,8 @@ export default function App() {
               <span>+</span>
             </button>
           </div>
-          <div className="titlebar-title">AutoCredit</div>
-          <div className={`titlebar-status${state?.settings.masterEnabled ? ' active' : ''}`}>
+          <div className="titlebar-title" data-tauri-drag-region>AutoCredit</div>
+          <div className={`titlebar-status${state?.settings.masterEnabled ? ' active' : ''}`} data-tauri-drag-region>
             <i />
             {state?.settings.masterEnabled ? '自动签到运行中' : '自动签到已暂停'}
           </div>
@@ -340,6 +353,58 @@ export default function App() {
               </button>
               <button className="btn primary" onClick={() => void window.autoCredit.installUpdate()}>
                 立即重启
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {migration && (
+        <div
+          className="modal-backdrop"
+          role="presentation"
+          onClick={() => {
+            if (!migrationBusy) setMigration(null)
+          }}
+        >
+          <div
+            className="modal-card"
+            role="dialog"
+            aria-modal="true"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="modal-mark">
+              <IconBolt size={24} />
+            </div>
+            <h2>已迁移到新版本</h2>
+            <p>
+              AutoCredit {migration.version} 起改用更轻量的新架构，功能与配置保持一致。安装程序会自动卸载旧版，并保留签到记录。
+            </p>
+            {(migration.phase === 'migration-downloading' || migration.phase === 'error') && (
+              <p className={`modal-status${migration.phase === 'error' ? ' error' : ''}`}>
+                {migration.message}
+              </p>
+            )}
+            <div className="modal-actions">
+              <button
+                className="btn ghost"
+                disabled={migrationBusy}
+                onClick={() => setMigration(null)}
+              >
+                稍后
+              </button>
+              <button
+                className="btn primary"
+                disabled={migrationBusy}
+                onClick={() => {
+                  setMigrationBusy(true)
+                  void window.autoCredit
+                    .installMigration()
+                    .catch(() => undefined)
+                    .finally(() => setMigrationBusy(false))
+                }}
+              >
+                {migrationBusy ? '正在准备…' : '立即升级'}
               </button>
             </div>
           </div>
