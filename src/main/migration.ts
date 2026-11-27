@@ -11,7 +11,7 @@ const TARGET_VERSION = '1.2.0'
 const FILE_NAME = 'AutoCredit-Setup-1.2.0.exe'
 const DOWNLOAD_URL =
   'https://github.com/Origin-XiChen/AutoCredit/releases/download/v1.2.0/AutoCredit-Setup-1.2.0.exe'
-const SHA256 = '514587128673114f7713207868c4d2708ead84a62de0ace71450ce63e90ca28d'
+const SHA256 = 'd2aef88ce0759002bc98618213263c622bd974d32597b7ab29b814a3e4af73d3'
 
 let loggerRef: Logger | null = null
 let emit: (status: UpdateStatus) => void = () => {}
