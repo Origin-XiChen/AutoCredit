@@ -40,8 +40,11 @@ fn app_info(app: AppHandle) -> AppInfo {
 
 #[tauri::command]
 fn pick_folder(app: AppHandle) -> Option<String> {
-    app.dialog()
-        .file()
+    let mut dialog = app.dialog().file();
+    if let Some(window) = app.get_webview_window("main") {
+        dialog = dialog.set_parent(&window);
+    }
+    dialog
         .blocking_pick_folder()
         .and_then(|path| path.into_path().ok())
         .map(|path| path.display().to_string())

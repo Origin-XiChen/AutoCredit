@@ -21,7 +21,7 @@ const browseBtn = el<HTMLButtonElement>('browseBtn')
 const cancelBtn = el<HTMLButtonElement>('cancelBtn')
 const closeBtn = el<HTMLButtonElement>('closeBtn')
 const minBtn = el<HTMLButtonElement>('minBtn')
-const pathText = el<HTMLDivElement>('pathText')
+const pathInput = el<HTMLInputElement>('pathInput')
 const status = el<HTMLDivElement>('status')
 const statusText = el<HTMLSpanElement>('statusText')
 const versionText = el<HTMLParagraphElement>('version')
@@ -50,8 +50,8 @@ async function init(): Promise<void> {
   const info = await invoke<AppInfo>('app_info')
   versionText.textContent = `v${info.version} · 每日自动签到`
   installPath = info.defaultPath
-  pathText.textContent = installPath
-  pathText.title = installPath
+  pathInput.value = installPath
+  pathInput.title = installPath
 }
 
 menuBtn.addEventListener('click', (event) => {
@@ -87,23 +87,40 @@ browseBtn.addEventListener('click', async () => {
   const picked = await invoke<string | null>('pick_folder')
   if (picked) {
     installPath = picked
-    pathText.textContent = picked
-    pathText.title = picked
+    pathInput.value = picked
+    pathInput.title = picked
   }
 })
 
-installBtn.addEventListener('click', async () => {
+pathInput.addEventListener('input', () => {
+  installPath = pathInput.value
+  pathInput.title = pathInput.value
+})
+
+pathInput.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter') {
+    event.preventDefault()
+    installBtn.click()
+  }
+})
+
+async function startInstall(): Promise<void> {
   if (installing) return
   const target = installPath.trim()
   if (!/^[a-zA-Z]:\\|^\\\\/.test(target)) {
     setStatus('error', '请选择有效的安装路径')
+    pathInput.focus()
     return
   }
+  installPath = target
+  pathInput.value = target
+  pathInput.title = target
 
   installing = true
   setMenu(false)
   installBtn.disabled = true
   installBtn.textContent = '正在安装…'
+  pathInput.disabled = true
   browseBtn.disabled = true
   cancelBtn.disabled = true
   closeBtn.disabled = true
@@ -126,12 +143,13 @@ installBtn.addEventListener('click', async () => {
     cancelBtn.disabled = false
     cancelBtn.textContent = '关闭'
     if (optLaunch.checked) {
-      window.setTimeout(() => void invoke('quit'), 1600)
+      window.setTimeout(() => void invoke('quit'), 2200)
     }
   } catch (error) {
     setStatus('error', String(error))
     installBtn.disabled = false
     installBtn.textContent = '重试安装'
+    pathInput.disabled = false
     browseBtn.disabled = false
     cancelBtn.disabled = false
     closeBtn.disabled = false
@@ -139,6 +157,8 @@ installBtn.addEventListener('click', async () => {
   } finally {
     unlisten()
   }
-})
+}
+
+installBtn.addEventListener('click', () => void startInstall())
 
 void init()

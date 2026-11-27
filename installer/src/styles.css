@@ -320,6 +320,16 @@ h1 {
   text-overflow: ellipsis;
 }
 
+.path:focus {
+  outline: none;
+  border-color: var(--brand);
+  background: var(--surface);
+}
+
+.path:disabled {
+  opacity: 0.6;
+}
+
 .browse {
   height: 36px;
   padding: 0 12px;
