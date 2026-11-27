@@ -26,10 +26,17 @@ const status = el<HTMLDivElement>('status')
 const statusText = el<HTMLSpanElement>('statusText')
 const versionText = el<HTMLParagraphElement>('version')
 const optShortcut = el<HTMLInputElement>('optShortcut')
+const optAutoStart = el<HTMLInputElement>('optAutoStart')
 const optLaunch = el<HTMLInputElement>('optLaunch')
 
 let installPath = ''
 let installing = false
+
+function closeWindow(): void {
+  if (installing) return
+  document.querySelector('.window')?.classList.add('closing')
+  window.setTimeout(() => void invoke('quit'), 140)
+}
 
 function setMenu(open: boolean): void {
   menu.hidden = !open
@@ -67,21 +74,17 @@ document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape') {
     if (!menu.hidden) {
       setMenu(false)
-    } else if (!installing) {
-      void invoke('quit')
+    } else {
+      closeWindow()
     }
   }
 })
 
 minBtn.addEventListener('click', () => void invoke('minimize'))
 
-closeBtn.addEventListener('click', () => {
-  if (!installing) void invoke('quit')
-})
+closeBtn.addEventListener('click', () => closeWindow())
 
-cancelBtn.addEventListener('click', () => {
-  if (!installing) void invoke('quit')
-})
+cancelBtn.addEventListener('click', () => closeWindow())
 
 browseBtn.addEventListener('click', async () => {
   const picked = await invoke<string | null>('pick_folder')
@@ -135,15 +138,18 @@ async function startInstall(): Promise<void> {
       options: {
         path: target,
         createShortcut: optShortcut.checked,
+        autoStart: optAutoStart.checked,
         launchAfter: optLaunch.checked,
       },
     })
     setStatus('success', optLaunch.checked ? '安装完成，AutoCredit 已启动' : '安装完成')
     installBtn.textContent = '安装完成'
+    installing = false
     cancelBtn.disabled = false
     cancelBtn.textContent = '关闭'
+    closeBtn.disabled = false
     if (optLaunch.checked) {
-      window.setTimeout(() => void invoke('quit'), 2200)
+      window.setTimeout(closeWindow, 2200)
     }
   } catch (error) {
     setStatus('error', String(error))

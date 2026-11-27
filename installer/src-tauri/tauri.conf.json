@@ -20,6 +20,7 @@
         "minimizable": true,
         "decorations": false,
         "transparent": true,
+        "backgroundColor": "#00000000",
         "shadow": false,
         "visible": true
       }

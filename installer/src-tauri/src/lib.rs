@@ -17,6 +17,7 @@ struct AppInfo {
 struct InstallOptions {
     path: String,
     create_shortcut: bool,
+    auto_start: bool,
     launch_after: bool,
 }
 
@@ -115,11 +116,38 @@ fn run_install(app: &AppHandle, options: InstallOptions) -> Result<(), String> {
     if options.create_shortcut {
         create_shortcut(&target);
     }
+    set_auto_launch(options.auto_start);
     if options.launch_after {
         let exe = target.join("AutoCredit.exe");
         let _ = Command::new(exe).spawn();
     }
     Ok(())
+}
+
+/// 把开机自启选项写入保留的配置文件，应用首次启动时会按该设置注册自启。
+fn set_auto_launch(enabled: bool) {
+    let Some(config_dir) = dirs::config_dir() else {
+        return;
+    };
+    let dir = config_dir.join("AutoCredit");
+    let path = dir.join("config.json");
+    let mut value = std::fs::read_to_string(&path)
+        .ok()
+        .and_then(|text| serde_json::from_str::<serde_json::Value>(&text).ok())
+        .unwrap_or_else(|| {
+            serde_json::json!({ "settings": {}, "apps": {}, "runtime": {} })
+        });
+    let Some(settings) = value.get_mut("settings").and_then(|item| item.as_object_mut()) else {
+        return;
+    };
+    settings.insert(
+        "autoLaunch".into(),
+        serde_json::Value::Bool(enabled),
+    );
+    let _ = std::fs::create_dir_all(&dir);
+    if let Ok(text) = serde_json::to_string_pretty(&value) {
+        let _ = std::fs::write(&path, text);
+    }
 }
 
 fn create_shortcut(target: &Path) {
