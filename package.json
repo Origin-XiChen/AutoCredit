@@ -1,6 +1,6 @@
 {
   "name": "autocredit",
-  "version": "1.1.5",
+  "version": "1.2.0",
   "description": "Quiet daily check-in assistant for Trae CN, Qoder, Qoder CN and WorkBuddy",
   "main": "./out/main/index.js",
   "author": "XiChen",
@@ -14,14 +14,21 @@
     "dev": "electron-vite dev",
     "start": "electron-vite preview",
     "build": "electron-vite build",
+    "dev:tauri": "vite --config vite.tauri.config.ts",
+    "build:tauri": "vite build --config vite.tauri.config.ts",
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
     "dist": "npm run build && electron-builder --win nsis --publish never",
     "dist:portable": "npm run build && electron-builder --win portable --publish never"
   },
   "dependencies": {
+    "@tauri-apps/api": "^2.12.5",
     "electron-updater": "^6.8.9"
   },
   "devDependencies": {
+    "@tauri-apps/cli": "^2.12.6",
     "@types/node": "^24.19.2",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",

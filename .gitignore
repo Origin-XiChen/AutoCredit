@@ -4,6 +4,9 @@ release/
 dist/
 coverage/
 .screenshots/
+src-tauri/target/
+src-tauri/gen/
+src-tauri/updater.key
 
 *.log
 *.tsbuildinfo

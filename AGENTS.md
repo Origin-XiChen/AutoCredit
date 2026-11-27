@@ -23,13 +23,13 @@
 | 项目 | 值 |
 | --- | --- |
 | 名称 | AutoCredit |
-| 当前版本 | **1.1.5** |
+| 当前版本 | **1.2.0**（Tauri 2 正式版）；Electron 1.1.5 为上一代实现，配置与密钥双向兼容 |
 | 平台 | Windows 10 / 11 桌面应用 |
-| 技术栈 | Electron 45 + electron-vite 6 + React 19 + TypeScript + electron-builder 26 + electron-updater |
+| 技术栈 | Tauri 2 + Rust + React 19 + TypeScript + tauri-plugin-updater；Electron 45 + electron-vite 代码保留在 `src/main` 供历史/桥接使用 |
 | 仓库 | https://github.com/Origin-XiChen/AutoCredit |
-| 分支 | `main` |
+| 分支 | `main`（Tauri 2 正式版）/ `tauri-migration`（迁移记录） |
 | 许可证 | GPL-3.0-only |
-| 安装包产物 | `release/AutoCredit-<version>-Setup.exe`、`.blockmap`、`latest.yml` |
+| 安装包产物 | Tauri：`src-tauri/target/release/bundle/nsis/AutoCredit_<version>_x64-setup.exe` + `.sig`；Electron 历史产物：`release/AutoCredit-<version>-Setup.exe`、`.blockmap`、`latest.yml` |
 | 最后更新 | 2026-11-27 |
 
 产品定位：每天在 **Trae CN、Qoder、Qoder CN、WorkBuddy** 上自动签到并领取积分。豆包为默认隐藏的实验功能，仅在设置中开启开发者模式后可见。
@@ -71,6 +71,7 @@
   - 位置：距屏幕右侧 **18px**，距任务栏 **24px**，确保四角完整可见。
   - 高度随程序数量动态变化，不得留固定空白。
   - 卡片必须使用 `box-sizing: border-box`，防止 padding 导致底部圆角被裁切。
+  - 倒计时结束后弹窗不关闭：右侧圆环转为黄色 + 三个跳动点表示签到中；全部成功或已签到后转为绿色勾，失败转红色 ×，停留约 1.1 秒再淡出关闭。
   - 设置中的 `showCheckinPopup` 必须能关闭该提醒；关闭后定时签到直接静默执行，不再创建弹窗窗口。
 - 更新反馈必须使用应用内状态条/弹窗，不要再用系统 `dialog.showMessageBox`。
 
@@ -146,6 +147,26 @@ src/
     src/styles.css          全局样式
 ```
 
+src-tauri/                  Tauri 2 迁移后端（tauri-migration 分支）
+  src/main.rs               Windows 入口（release 隐藏控制台）
+  src/lib.rs                插件、setup、托盘、调度启动、主窗口关闭行为
+  src/commands.rs           全部 IPC 命令（与 window.autoCredit 对应）
+  src/models.rs             共享类型、签到日、App 元数据
+  src/store.rs              配置/日志目录、DPAPI + Electron v10 安全存储兼容
+  src/logger.rs             内存 + 每日 JSONL 日志、脱敏
+  src/scheduler.rs          定时/补签/重试/探测、全屏抑制、弹窗触发
+  src/popup.rs              右下角签到弹窗窗口与 10 秒倒计时
+  src/tray.rs               托盘菜单与 tooltip（dev 显示 AutoCredit-dev）
+  src/fullscreen.rs         SHQueryUserNotificationState 封装
+  src/checkin/              Rust 适配器（trae / qoder / workbuddy / doubao）
+  tauri.conf.json           窗口、更新器、NSIS 品牌素材
+  capabilities/default.json 主窗口与弹窗权限
+  updater.key(.pub)         更新签名密钥（私钥已被 .gitignore 忽略）
+
+src/renderer/src/tauri-api.ts   Tauri 环境下注入 window.autoCredit（invoke/listen）
+vite.tauri.config.ts            主界面 index.html + popup.html 多入口构建
+```
+
 关键机制：
 
 - `visibleAppIds(settings)` 是豆包可见性的唯一入口；总览、设置、日志、调度器都必须使用它。
@@ -154,6 +175,11 @@ src/
 - 主进程通过 `update:status` 推送更新状态；`ui:settings-about` 用于托盘跳转关于页。
 - 渲染层只能通过 `window.autoCredit` 调用主进程能力，不要直接使用 Node API。
 - 程序定位统一走适配器的 `locate()`（设置页「自动搜索」）：`customPath` 表示登录态 / 数据路径，`customExePath` 表示客户端路径；两者留空时自动检测，填写了但不存在时也必须回退到自动检测，不能因路径失效导致签到整体失败。
+- **Tauri 迁移**：渲染层不感知后端差异，`installTauriApi()` 在检测到 `__TAURI_INTERNALS__` 时注入同签名的 `window.autoCredit`；Electron preload 保持不变。
+- Tauri 数据目录默认仍为 `%APPDATA%\AutoCredit`；设置 `AUTOCREDIT_DATA_DIR` 可指向隔离目录用于测试，避免影响正式配置。
+- Tauri 安全存储必须兼容 Electron `safeStorage` 的 Chromium `v10`（AES-256-GCM）格式，密钥来自 `Local State` 的 `os_crypt.encrypted_key`（DPAPI 保护）。
+- Tauri 构建命令：前端 `npm run build:tauri`，开发 `npm run tauri:dev`，安装包 `npm run tauri:build`；签名需设置 `TAURI_SIGNING_PRIVATE_KEY`（`src-tauri/updater.key` 的内容）与空密码。
+- 新旧版本迁移：`src-tauri/installer-hooks.nsh` 在 NSIS `PREINSTALL` 阶段结束旧进程、清理 Electron 自启项并静默调用旧版卸载器，保留 `%APPDATA%\AutoCredit`。Electron 自动更新无法跨到 Tauri，1.1.5 用户需手动运行 1.2.0 安装包，配置与 PAT 会自动沿用；后续升级由 Tauri 更新器接管。
 
 ---
 
@@ -167,9 +193,15 @@ src/
    npm run typecheck
    npm run build
    ```
+   Tauri 迁移分支还需运行：
+   ```bash
+   npm run build:tauri
+   cargo check --manifest-path src-tauri/Cargo.toml
+   ```
    涉及安装包或发布时再运行：
    ```bash
    npm run dist
+   npm run tauri:build
    ```
 5. 尽量实际启动应用验证 UI（开发测试用独立 `--user-data-dir` 和 `-dev` 标识，避免与正式版托盘混淆）。
 6. 如改动影响行为或版本，更新本文件的「项目快照」和「版本进度」。
@@ -208,6 +240,7 @@ src/
 | 1.1.3 | 更新结果改为应用内状态条与自绘弹窗，移除系统对话框；NSIS 安装向导加入品牌图标、横幅与侧栏 |
 | 1.1.4 | 设置页支持为 Trae CN、WorkBuddy、豆包手动填写/浏览/自动搜索路径；自动搜索兼容非默认安装目录，自定义路径无效时自动回退 |
 | 1.1.5 | 设置新增「签到提醒窗口」开关（`showCheckinPopup`），关闭后静默签到；精简 Electron 语言包与冗余运行时依赖，减小安装体积 |
+| 1.2.0 | 迁移至 Tauri 2：Rust 后端、同一 React 渲染层、托盘/单实例/自启/弹窗、DPAPI + Electron v10 密钥兼容、内置更新器；安装器自动静默卸载 Electron 旧版并保留 `%APPDATA%\AutoCredit` 数据；签到提醒新增倒计时 → 黄色三点签到中 → 绿色勾/红色 × 状态流转 |
 
 ---
 
@@ -223,6 +256,10 @@ src/
 - **更新弹窗风格**：用户明确要求应用内自绘弹窗，不要再恢复系统原生对话框。
 - **提交署名**：历史要求提交中只出现 XiChen 和 DeepSeek，不要添加其他 AI 工具标识。
 - **跨电脑路径差异**：Trae / WorkBuddy / 豆包可能安装在非默认目录，登录态目录也可能被改名或重定向；自动搜索必须覆盖常见目录并允许用户在设置中手动填写 `customPath` / `customExePath`，且无效自定义路径要自动回退。
+- **Tauri 密钥兼容**：Electron `safeStorage` 在 Windows 上是 Chromium `v10`（AES-256-GCM），不是裸 DPAPI；Rust 端必须读取 `Local State` 的 `os_crypt.encrypted_key` 解密，保存时也写回 `v10` 以保持两版互通。
+- **Trae 过期时间字段**：`expiredAt` / `refreshExpiredAt` 实际可能是 ISO 字符串而非毫秒数；Rust 反序列化需同时兼容数字与字符串，否则整个登录态会被判为不存在。
+- **Tauri 窗口尺寸**：主窗口内容区仍是 1120×760；无边框可缩放窗口会多出约 8px 透明拖拽边框，加上界面本身 10px 透明留白，属于预期表现。
+- **Tauri 更新发布**：GitHub Release 需额外提供 Tauri 的 `latest.json` 与 `.sig`，与 Electron 的 `latest.yml` / `.blockmap` 不能混用。
 
 ---
 

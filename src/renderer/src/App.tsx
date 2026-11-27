@@ -167,7 +167,7 @@ export default function App() {
   return (
     <div className="window">
       <div className="shell">
-        <header className="titlebar" onDoubleClick={() => window.autoCredit.windowMaximize()}>
+        <header className="titlebar" data-tauri-drag-region onDoubleClick={() => window.autoCredit.windowMaximize()}>
           <div className="traffic">
             <button className="traffic-btn close" aria-label="关闭" onClick={() => window.autoCredit.windowClose()}>
               <span>✕</span>
@@ -179,8 +179,8 @@ export default function App() {
               <span>+</span>
             </button>
           </div>
-          <div className="titlebar-title">AutoCredit</div>
-          <div className={`titlebar-status${state?.settings.masterEnabled ? ' active' : ''}`}>
+          <div className="titlebar-title" data-tauri-drag-region>AutoCredit</div>
+          <div className={`titlebar-status${state?.settings.masterEnabled ? ' active' : ''}`} data-tauri-drag-region>
             <i />
             {state?.settings.masterEnabled ? '自动签到运行中' : '自动签到已暂停'}
           </div>

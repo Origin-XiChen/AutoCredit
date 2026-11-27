@@ -106,6 +106,10 @@ export interface PopupData {
   seconds: number
 }
 
+export interface PopupPhasePayload {
+  phase: 'running' | 'success' | 'error'
+}
+
 export interface DetectResult {
   ok: boolean
   message: string
@@ -162,6 +166,7 @@ export interface AutoCreditApi {
   exportLogs(): Promise<string | null>
   getPopupData(): Promise<PopupData | null>
   onPopupDismiss(callback: () => void): () => void
+  onPopupPhase?(callback: (payload: PopupPhasePayload) => void): () => void
   popupCancel(): void
   openExternal(url: string): Promise<void>
   openPath(path: string): Promise<void>

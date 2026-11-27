@@ -1,0 +1,61 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "AutoCredit",
+  "version": "1.2.0",
+  "identifier": "com.xichen.autocredit",
+  "build": {
+    "beforeDevCommand": "npm run dev:tauri",
+    "devUrl": "http://localhost:5174",
+    "beforeBuildCommand": "npm run build:tauri",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "AutoCredit",
+        "width": 1120,
+        "height": 760,
+        "minWidth": 960,
+        "minHeight": 660,
+        "center": true,
+        "decorations": false,
+        "transparent": true,
+        "shadow": false,
+        "visible": false,
+        "resizable": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEVGRTJCNEI1NDQ3NTRDMTIKUldRU1RIVkV0YlRpNzFZWEdJUHkrSmdPbldFM05QK0xqTGdDZXZ0dWoyVHo1V2dtQ1llTHczS1QK",
+      "endpoints": [
+        "https://github.com/Origin-XiChen/AutoCredit/releases/latest/download/latest.json"
+      ]
+    }
+  },
+  "bundle": {
+    "active": true,
+    "createUpdaterArtifacts": true,
+    "targets": ["nsis"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.ico"
+    ],
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser",
+        "installerHooks": "installer-hooks.nsh",
+        "installerIcon": "icons/icon.ico",
+        "headerImage": "installer-header.bmp",
+        "sidebarImage": "installer-sidebar.bmp"
+      }
+    }
+  }
+}
