@@ -30,13 +30,41 @@ fn emit_status(app: &AppHandle, stage: &str, message: &str) {
 
 #[tauri::command]
 fn app_info(app: AppHandle) -> AppInfo {
-    let default_path = dirs::data_local_dir()
-        .unwrap_or_else(|| PathBuf::from("C:\\"))
-        .join("AutoCredit");
+    let default_path = old_install_dir().unwrap_or_else(|| {
+        dirs::data_local_dir()
+            .unwrap_or_else(|| PathBuf::from("C:\\"))
+            .join("AutoCredit")
+    });
     AppInfo {
         version: app.package_info().version.to_string(),
         default_path: default_path.display().to_string(),
     }
+}
+
+/// 旧版 Electron 的安装目录；未安装旧版时返回 None。
+fn old_install_dir() -> Option<PathBuf> {
+    const KEY: &str = r"HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\9a306f92-57d0-53be-904f-2e00aea31131";
+    let output = Command::new("reg")
+        .args(["query", KEY, "/v", "InstallLocation"])
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let text = String::from_utf8_lossy(&output.stdout);
+    let value = text
+        .lines()
+        .find(|line| line.contains("InstallLocation"))?
+        .split("REG_SZ")
+        .nth(1)?
+        .trim()
+        .trim_matches('"')
+        .trim();
+    if value.is_empty() {
+        return None;
+    }
+    let path = PathBuf::from(value);
+    path.is_dir().then_some(path)
 }
 
 #[tauri::command]
@@ -76,6 +104,7 @@ fn run_install(app: &AppHandle, options: InstallOptions) -> Result<(), String> {
         return Err("安装路径必须是绝对路径".into());
     }
     std::fs::create_dir_all(&target).map_err(|error| format!("无法创建安装目录：{error}"))?;
+    let old_dir = old_install_dir();
 
     emit_status(app, "preparing", "正在准备安装包…");
     let setup = std::env::temp_dir().join("AutoCredit-setup-embedded.exe");
@@ -102,6 +131,7 @@ fn run_install(app: &AppHandle, options: InstallOptions) -> Result<(), String> {
     let status = Command::new(&setup)
         .arg("/S")
         .arg(format!("/D={install_dir}"))
+        .current_dir(std::env::temp_dir())
         .status()
         .map_err(|error| format!("无法启动安装程序：{error}"))?;
     let _ = std::fs::remove_file(&setup);
@@ -113,13 +143,24 @@ fn run_install(app: &AppHandle, options: InstallOptions) -> Result<(), String> {
         ));
     }
 
+    // 新版装到其他位置时，清掉旧版卸载后留下的空目录。
+    if let Some(old) = old_dir {
+        let same = match (old.canonicalize(), target.canonicalize()) {
+            (Ok(a), Ok(b)) => a == b,
+            _ => false,
+        };
+        if !same {
+            let _ = std::fs::remove_dir(&old);
+        }
+    }
+
     if options.create_shortcut {
         create_shortcut(&target);
     }
     set_auto_launch(options.auto_start);
     if options.launch_after {
         let exe = target.join("AutoCredit.exe");
-        let _ = Command::new(exe).spawn();
+        let _ = Command::new(exe).current_dir(&target).spawn();
     }
     Ok(())
 }
@@ -174,6 +215,8 @@ fn create_shortcut(target: &Path) {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // 避免继承旧安装目录作为工作目录，导致该目录在安装期间被占用。
+    let _ = std::env::set_current_dir(std::env::temp_dir());
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
