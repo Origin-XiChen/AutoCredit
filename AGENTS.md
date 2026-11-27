@@ -147,7 +147,7 @@ src/
     src/styles.css          全局样式
 ```
 
-src-tauri/                  Tauri 2 迁移后端（tauri-migration 分支）
+src-tauri/                  Tauri 2 主程序后端
   src/main.rs               Windows 入口（release 隐藏控制台）
   src/lib.rs                插件、setup、托盘、调度启动、主窗口关闭行为
   src/commands.rs           全部 IPC 命令（与 window.autoCredit 对应）
@@ -165,6 +165,12 @@ src-tauri/                  Tauri 2 迁移后端（tauri-migration 分支）
 
 src/renderer/src/tauri-api.ts   Tauri 环境下注入 window.autoCredit（invoke/listen）
 vite.tauri.config.ts            主界面 index.html + popup.html 多入口构建
+
+installer/                      自绘安装引导器（Tauri）
+  index.html / src/             安装窗口 UI（标题栏、立即安装、路径、更多设置）
+  src-tauri/src/lib.rs          嵌入 NSIS、静默安装、桌面快捷方式、窗口控制
+  src-tauri/resources/          setup-embedded.exe（构建时复制，已忽略）
+scripts/installer.mjs           引导器 prepare / dev / build 编排
 ```
 
 关键机制：
@@ -180,6 +186,7 @@ vite.tauri.config.ts            主界面 index.html + popup.html 多入口构�
 - Tauri 安全存储必须兼容 Electron `safeStorage` 的 Chromium `v10`（AES-256-GCM）格式，密钥来自 `Local State` 的 `os_crypt.encrypted_key`（DPAPI 保护）。
 - Tauri 构建命令：前端 `npm run build:tauri`，开发 `npm run tauri:dev`，安装包 `npm run tauri:build`；签名需设置 `TAURI_SIGNING_PRIVATE_KEY`（`src-tauri/updater.key` 的内容）与空密码。
 - 新旧版本迁移：`src-tauri/installer-hooks.nsh` 在 NSIS `PREINSTALL` 阶段结束旧进程、清理 Electron 自启项并静默调用旧版卸载器，保留 `%APPDATA%\AutoCredit`。Electron 自动更新无法跨到 Tauri，1.1.5 用户需手动运行 1.2.0 安装包，配置与 PAT 会自动沿用；后续升级由 Tauri 更新器接管。
+- 安装引导器：`npm run installer:build` 会先复制当前版本的 NSIS 安装包到 `installer/src-tauri/resources/setup-embedded.exe`，再构建自绘安装窗口；安装时以 `/S /D=<路径>` 静默调用内置 NSIS。`npm run installer:dev` 用于界面调试；`AUTOCREDIT_INSTALLER_DRY_RUN=1` 可跳过真实安装、只验证状态流转。引导器输出为 `installer/release/AutoCredit-Setup-<version>.exe`。
 
 ---
 
@@ -240,7 +247,7 @@ vite.tauri.config.ts            主界面 index.html + popup.html 多入口构�
 | 1.1.3 | 更新结果改为应用内状态条与自绘弹窗，移除系统对话框；NSIS 安装向导加入品牌图标、横幅与侧栏 |
 | 1.1.4 | 设置页支持为 Trae CN、WorkBuddy、豆包手动填写/浏览/自动搜索路径；自动搜索兼容非默认安装目录，自定义路径无效时自动回退 |
 | 1.1.5 | 设置新增「签到提醒窗口」开关（`showCheckinPopup`），关闭后静默签到；精简 Electron 语言包与冗余运行时依赖，减小安装体积 |
-| 1.2.0 | 迁移至 Tauri 2：Rust 后端、同一 React 渲染层、托盘/单实例/自启/弹窗、DPAPI + Electron v10 密钥兼容、内置更新器；安装器自动静默卸载 Electron 旧版并保留 `%APPDATA%\AutoCredit` 数据；签到提醒新增倒计时 → 黄色三点签到中 → 绿色勾/红色 × 状态流转 |
+| 1.2.0 | 迁移至 Tauri 2：Rust 后端、同一 React 渲染层、托盘/单实例/自启/弹窗、DPAPI + Electron v10 密钥兼容、内置更新器；安装器自动静默卸载 Electron 旧版并保留 `%APPDATA%\AutoCredit` 数据；签到提醒新增倒计时 → 黄色三点签到中 → 绿色勾/红色 × 状态流转；新增自绘安装引导器（名称、立即安装、路径、更多设置） |
 
 ---
 

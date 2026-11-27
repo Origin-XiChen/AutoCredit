@@ -7,6 +7,11 @@ coverage/
 src-tauri/target/
 src-tauri/gen/
 src-tauri/updater.key
+installer/src-tauri/target/
+installer/src-tauri/gen/
+installer/src-tauri/resources/setup-embedded.exe
+installer/dist/
+installer/release/
 
 *.log
 *.tsbuildinfo

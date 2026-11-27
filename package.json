@@ -19,6 +19,9 @@
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
+    "installer:prepare": "node scripts/installer.mjs prepare",
+    "installer:dev": "node scripts/installer.mjs dev",
+    "installer:build": "node scripts/installer.mjs build",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
     "dist": "npm run build && electron-builder --win nsis --publish never",
     "dist:portable": "npm run build && electron-builder --win portable --publish never"

@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AutoCredit 安装程序</title>
+  </head>
+  <body>
+    <div class="window">
+      <header class="titlebar" data-tauri-drag-region>
+        <span class="mark">AC</span>
+        <span class="title" data-tauri-drag-region>AutoCredit 安装程序</span>
+        <span class="spacer" data-tauri-drag-region></span>
+        <button id="menuBtn" class="winbtn menu" type="button" aria-label="更多设置">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+            <path d="M2 4h12M2 8h12M2 12h12" />
+          </svg>
+        </button>
+        <button id="minBtn" class="winbtn" type="button" aria-label="最小化">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round">
+            <path d="M3 8h10" />
+          </svg>
+        </button>
+        <button class="winbtn" type="button" aria-label="最大化" disabled>
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4">
+            <rect x="3.5" y="3.5" width="9" height="9" rx="1" />
+          </svg>
+        </button>
+        <button id="closeBtn" class="winbtn close" type="button" aria-label="关闭">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+            <path d="M4 4l8 8M12 4l-8 8" />
+          </svg>
+        </button>
+
+        <div id="menu" class="menu-panel" hidden>
+          <p class="menu-title">更多设置</p>
+          <label class="option"><input id="optShortcut" type="checkbox" checked /> 创建桌面快捷方式</label>
+          <label class="option"><input id="optLaunch" type="checkbox" checked /> 安装完成后启动</label>
+          <label class="option"><input type="checkbox" checked disabled /> 保留旧版配置与签到记录</label>
+          <div class="divider"></div>
+          <div class="lang"><span>安装语言</span><span>简体中文</span></div>
+        </div>
+      </header>
+
+      <main class="content">
+        <div class="applogo">AC</div>
+        <h1>AutoCredit</h1>
+        <p class="version" id="version">v1.2.0 · 每日自动签到</p>
+
+        <button id="installBtn" class="install" type="button">立即安装</button>
+
+        <div id="status" class="status" hidden>
+          <span id="statusIcon" class="status-icon"></span>
+          <span id="statusText" class="status-text"></span>
+          <span class="status-bar"><span id="statusBar"></span></span>
+        </div>
+
+        <p class="field-label">安装位置</p>
+        <div class="pathrow">
+          <div id="pathText" class="path" title="">C:\Users\XiChen\AppData\Local\AutoCredit</div>
+          <button id="browseBtn" class="browse" type="button">浏览…</button>
+        </div>
+        <p class="note">将自动卸载旧版 Electron，并保留配置、日志与签到记录。</p>
+      </main>
+
+      <footer class="footer">
+        <button id="cancelBtn" class="cancel" type="button">取消</button>
+      </footer>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

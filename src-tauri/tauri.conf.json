@@ -52,6 +52,7 @@
       "nsis": {
         "installMode": "currentUser",
         "installerHooks": "installer-hooks.nsh",
+        "languages": ["SimpChinese"],
         "installerIcon": "icons/icon.ico",
         "headerImage": "installer-header.bmp",
         "sidebarImage": "installer-sidebar.bmp"
