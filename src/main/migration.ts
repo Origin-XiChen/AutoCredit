@@ -11,7 +11,7 @@ const TARGET_VERSION = '1.2.0'
 const FILE_NAME = 'AutoCredit-Setup-1.2.0.exe'
 const DOWNLOAD_URL =
   'https://github.com/Origin-XiChen/AutoCredit/releases/download/v1.2.0/AutoCredit-Setup-1.2.0.exe'
-const SHA256 = 'd2aef88ce0759002bc98618213263c622bd974d32597b7ab29b814a3e4af73d3'
+const SHA256 = '66b72eda51846ef340b0cfee32d38e67cbb8e65aa254868c750c58b60330d943'
 
 let loggerRef: Logger | null = null
 let emit: (status: UpdateStatus) => void = () => {}
@@ -118,7 +118,7 @@ export async function installMigration(): Promise<void> {
       version: TARGET_VERSION,
       message: '正在启动安装程序…',
     })
-    const child = spawn(file, [], { detached: true, stdio: 'ignore' })
+    const child = spawn(file, [], { detached: true, stdio: 'ignore', cwd: dir })
     child.unref()
     loggerRef?.info('已启动新版本安装程序，应用即将退出')
     setTimeout(() => app.quit(), 700)
