@@ -60,11 +60,23 @@ pub fn run() {
             scheduler::start(app.handle().clone());
             network::start(app.handle().clone());
 
-            // 每次启动后自动检查 GitHub 上的新版本，发现更新时由前端弹出公告。
+            // 启动后检查一次，之后每 4 小时检查一次，长期不关机也能发现新版本。
             let update_handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
                 tokio::time::sleep(std::time::Duration::from_secs(6)).await;
-                commands::update_check(update_handle).await;
+                loop {
+                    let online = update_handle
+                        .state::<AppState>()
+                        .network_online
+                        .load(Ordering::Relaxed);
+                    if online {
+                        commands::update_check(update_handle.clone()).await;
+                        tokio::time::sleep(std::time::Duration::from_secs(4 * 60 * 60)).await;
+                    } else {
+                        // 离线时稍后重试，避免反复上报检查失败。
+                        tokio::time::sleep(std::time::Duration::from_secs(10 * 60)).await;
+                    }
+                }
             });
 
             apply_autostart(app.handle(), settings.auto_launch);

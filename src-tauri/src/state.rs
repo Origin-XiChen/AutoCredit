@@ -18,6 +18,8 @@ pub struct AppState {
     pub today: Mutex<String>,
     pub network_online: AtomicBool,
     pub network_checked_at: Mutex<Option<String>>,
+    pub update_lock: tokio::sync::Mutex<()>,
+    pub update_ready_version: Mutex<Option<String>>,
 }
 
 impl AppState {
@@ -33,6 +35,8 @@ impl AppState {
             today: Mutex::new(crate::models::local_date_key()),
             network_online: AtomicBool::new(true),
             network_checked_at: Mutex::new(None),
+            update_lock: tokio::sync::Mutex::new(()),
+            update_ready_version: Mutex::new(None),
         }
     }
 

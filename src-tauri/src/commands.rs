@@ -449,6 +449,9 @@ pub async fn update_check(app: AppHandle) {
         );
         return;
     }
+    // 串行化更新检查，避免定时检查与手动检查同时下载。
+    let _guard = state.update_lock.lock().await;
+
     let _ = app.emit(
         "update:status",
         UpdateStatus {
@@ -481,6 +484,30 @@ pub async fn update_check(app: AppHandle) {
         Ok(Some(update)) => {
             let version = update.version.clone();
             let notes = update.body.clone();
+
+            // 该版本已下载完成时直接提示重启，避免定时检查重复下载。
+            let ready_version = state
+                .update_ready_version
+                .lock()
+                .ok()
+                .and_then(|guard| guard.clone());
+            if ready_version.as_deref() == Some(version.as_str()) {
+                state
+                    .logger
+                    .info(format!("新版本 {version} 已下载，等待安装"));
+                let _ = app.emit(
+                    "update:status",
+                    UpdateStatus {
+                        phase: UpdatePhase::Ready,
+                        message: format!("新版本 {version} 已下载，重启应用后完成安装"),
+                        version: Some(version),
+                        notes,
+                        progress: Some(100.0),
+                    },
+                );
+                return;
+            }
+
             let _ = app.emit(
                 "update:status",
                 UpdateStatus {
@@ -532,6 +559,9 @@ pub async fn update_check(app: AppHandle) {
                 .await
             {
                 Ok(()) => {
+                    if let Ok(mut guard) = state.update_ready_version.lock() {
+                        *guard = Some(version.clone());
+                    }
                     let _ = app.emit(
                         "update:status",
                         UpdateStatus {
