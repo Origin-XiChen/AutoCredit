@@ -39,8 +39,8 @@ function overallNext(state: BootstrapState): string {
   const pending = visibleAppIds(state.settings).filter((id) => {
     if (!state.apps[id].enabled) return false
     const runtime = state.runtime[id]
-    // 国际版等不可签到的程序不参与补签计时
-    if (runtime.status === 'unavailable') return false
+    // 国际版、不在活动期等不可签到的程序不参与补签计时
+    if (runtime.status === 'unavailable' || runtime.status === 'inactive') return false
     return !(runtime.lastSuccessDate === today || (runtime.probeDate === today && runtime.todayCheckedIn))
   })
   if (!pending.length) return '明日'

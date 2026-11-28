@@ -6,7 +6,7 @@ use tauri::{AppHandle, Emitter, Manager};
 use crate::checkin::{self, AdapterContext, Outcome, ProbeResult, Readiness};
 use crate::models::{
     app_meta, checkin_date_key, is_time_reached, local_date_key, now_iso, visible_app_ids, AppId,
-    ConfigFile, LogLevel, RunStatus,
+    ConfigFile, LogLevel, PopupResult, PopupResultItem, PopupTone, RunStatus,
 };
 use crate::state::AppState;
 use crate::store::AppRuntimePatch;
@@ -123,15 +123,18 @@ pub async fn tick(app: &AppHandle) {
         }
     }
 
-    let mut all_ok = true;
+    let mut results = Vec::new();
     for id in ready {
-        let status = execute(app, id).await;
-        if !matches!(status, RunStatus::Success | RunStatus::Already) {
-            all_ok = false;
-        }
+        let outcome = execute(app, id).await;
+        results.push(PopupResultItem {
+            id,
+            name: app_meta(id).name.to_string(),
+            status: outcome.status,
+            credits: outcome.credits,
+        });
     }
     if popup_flow {
-        crate::popup::finish(app, all_ok).await;
+        crate::popup::finish(app, build_popup_result(results)).await;
     }
     emit_state(app);
 }
@@ -215,7 +218,7 @@ pub async fn run_now(app: &AppHandle, ids: Option<Vec<AppId>>) {
     emit_state(app);
 }
 
-async fn execute(app: &AppHandle, id: AppId) -> RunStatus {
+async fn execute(app: &AppHandle, id: AppId) -> Outcome {
     let state = app.state::<AppState>();
     let started_at = now_iso();
     let today = date_key(id);
@@ -240,9 +243,9 @@ async fn execute(app: &AppHandle, id: AppId) -> RunStatus {
 
     let ctx = context_for(app, id);
     let outcome = checkin::adapter_for(id).check_in(ctx).await;
-    let status = outcome.status;
+    let result = outcome.clone();
     apply_outcome(app, id, outcome, attempts);
-    status
+    result
 }
 
 fn apply_outcome(app: &AppHandle, id: AppId, outcome: Outcome, attempts: u32) {
@@ -299,6 +302,23 @@ fn apply_outcome(app: &AppHandle, id: AppId, outcome: Outcome, attempts: u32) {
             state
                 .logger
                 .warn(format!("{name}：{}", outcome.message), Some(id));
+        }
+        RunStatus::Inactive => {
+            write_runtime(
+                app,
+                id,
+                AppRuntimePatch {
+                    status: Some(RunStatus::Inactive),
+                    message: Some(outcome.message.clone()),
+                    credits: Some(outcome.credits.or(current.credits)),
+                    today_checked_in: Some(Some(false)),
+                    probe_date: Some(Some(today)),
+                    ..Default::default()
+                },
+            );
+            state
+                .logger
+                .log(LogLevel::Info, Some(id), format!("{name}：{}", outcome.message));
         }
         RunStatus::Failed => {
             let will_retry = attempts < MAX_ATTEMPTS;
@@ -420,6 +440,22 @@ fn apply_probe(app: &AppHandle, id: AppId, probe: ProbeResult) {
                 Some(id),
             );
         }
+        RunStatus::Inactive => {
+            write_runtime(
+                app,
+                id,
+                AppRuntimePatch {
+                    status: Some(RunStatus::Inactive),
+                    message: Some(probe.message.clone()),
+                    today_checked_in: Some(Some(false)),
+                    probe_date: Some(Some(today)),
+                    ..Default::default()
+                },
+            );
+            state
+                .logger
+                .log(LogLevel::Info, Some(id), format!("{name}：{}", probe.message));
+        }
         RunStatus::NeedsSetup | RunStatus::NeedsAuth | RunStatus::Unavailable => {
             write_runtime(
                 app,
@@ -452,6 +488,44 @@ fn apply_probe(app: &AppHandle, id: AppId, probe: ProbeResult) {
                 .logger
                 .log(LogLevel::Info, Some(id), format!("{name}：今日待签到"));
         }
+    }
+}
+
+fn build_popup_result(items: Vec<PopupResultItem>) -> PopupResult {
+    let mut done = 0;
+    let mut inactive = 0;
+    let mut skipped = 0;
+    let mut failed = 0;
+    for item in &items {
+        match item.status {
+            RunStatus::Success | RunStatus::Already => done += 1,
+            RunStatus::Inactive => inactive += 1,
+            RunStatus::Unavailable | RunStatus::Cancelled => skipped += 1,
+            _ => failed += 1,
+        }
+    }
+    let tone = if failed > 0 {
+        PopupTone::Error
+    } else if inactive > 0 || skipped > 0 {
+        PopupTone::Notice
+    } else {
+        PopupTone::Success
+    };
+    let summary = match tone {
+        PopupTone::Success => "全部程序签到完成".to_string(),
+        PopupTone::Notice if done > 0 => {
+            format!("{done} 个签到完成，{} 个暂不可签", inactive + skipped)
+        }
+        PopupTone::Notice if inactive > 0 && skipped == 0 => {
+            "当前不在活动时间，今日暂无需签到".to_string()
+        }
+        PopupTone::Notice => "暂无可签到的程序".to_string(),
+        PopupTone::Error => format!("{done} 个完成，{failed} 个未完成"),
+    };
+    PopupResult {
+        tone,
+        summary,
+        items,
     }
 }
 
@@ -570,7 +644,10 @@ fn settled_today(config: &ConfigFile, id: AppId) -> bool {
     }
     if matches!(
         runtime.status,
-        RunStatus::NeedsSetup | RunStatus::NeedsAuth | RunStatus::Unavailable
+        RunStatus::NeedsSetup
+            | RunStatus::NeedsAuth
+            | RunStatus::Unavailable
+            | RunStatus::Inactive
     ) {
         return true;
     }

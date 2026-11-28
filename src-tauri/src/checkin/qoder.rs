@@ -581,7 +581,7 @@ impl Adapter for QoderAdapter {
         let Some(campaign) = campaign else {
             return ProbeResult {
                 checked_in: false,
-                status: RunStatus::Unavailable,
+                status: RunStatus::Inactive,
                 message: "当前没有可领取的签到活动，可能不在活动期内".into(),
                 credits: None,
             };
@@ -594,7 +594,7 @@ impl Adapter for QoderAdapter {
         {
             return ProbeResult {
                 checked_in: false,
-                status: RunStatus::Unavailable,
+                status: RunStatus::Inactive,
                 message: "当前没有可领取的签到活动，可能不在活动期内".into(),
                 credits: None,
             };
@@ -611,7 +611,7 @@ impl Adapter for QoderAdapter {
         if campaign.claimable == Some(false) {
             return ProbeResult {
                 checked_in: false,
-                status: RunStatus::Unavailable,
+                status: RunStatus::Inactive,
                 message: "签到窗口尚未开放或今日暂不可领取".into(),
                 credits: None,
             };
@@ -634,7 +634,7 @@ impl Adapter for QoderAdapter {
             Some(campaign) => campaign,
             None => {
                 return Outcome {
-                    status: RunStatus::Unavailable,
+                    status: RunStatus::Inactive,
                     message: "当前没有可领取的签到活动，可能不在活动期内".into(),
                     credits: None,
                 };
@@ -662,7 +662,7 @@ impl Adapter for QoderAdapter {
         }
         if campaign.claimable == Some(false) {
             return Outcome {
-                status: RunStatus::Unavailable,
+                status: RunStatus::Inactive,
                 message: "签到窗口尚未开放或今日暂不可领取".into(),
                 credits: None,
             };
@@ -678,7 +678,16 @@ impl Adapter for QoderAdapter {
             .await
         {
             Ok(result) => result,
-            Err(message) => return error_outcome(&message, "Qoder 签到失败"),
+            Err(message) => {
+                if super::is_inactive_message(&message) {
+                    return Outcome {
+                        status: RunStatus::Inactive,
+                        message,
+                        credits: None,
+                    };
+                }
+                return error_outcome(&message, "Qoder 签到失败");
+            }
         };
 
         let gained = result

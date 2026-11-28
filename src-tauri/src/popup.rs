@@ -7,7 +7,9 @@ use tauri::{
 };
 use tokio::sync::oneshot;
 
-use crate::models::{app_meta, AppId, PopupApp, PopupData, POPUP_SECONDS};
+use crate::models::{
+    app_meta, AppId, PopupApp, PopupData, PopupResult, PopupTone, POPUP_SECONDS,
+};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum PopupOutcome {
@@ -19,6 +21,8 @@ pub enum PopupOutcome {
 #[serde(rename_all = "camelCase")]
 struct PopupPhasePayload {
     phase: &'static str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    result: Option<PopupResult>,
 }
 
 struct Session {
@@ -91,7 +95,7 @@ pub async fn show(app: AppHandle, controller: &PopupController, ids: Vec<AppId>)
         return PopupOutcome::Cancelled;
     }
 
-    let height = 116.0 + data.apps.len() as f64 * 14.0;
+    let height = 124.0 + data.apps.len() as f64 * 16.0;
     if let Some(existing) = app.get_webview_window("popup") {
         let _ = existing.close();
     }
@@ -150,25 +154,34 @@ async fn start_running(app: AppHandle) {
         let _ = app.emit_to(
             "popup",
             "popup:phase",
-            PopupPhasePayload { phase: "running" },
+            PopupPhasePayload {
+                phase: "running",
+                result: None,
+            },
         );
     }
 }
 
-/// 签到流程结束后更新弹窗状态：先显示结果，再淡出关闭。
-pub async fn finish(app: &AppHandle, success: bool) {
+/// 签到流程结束后更新弹窗状态：先展示每个程序的结果，停留几秒后再淡出关闭。
+pub async fn finish(app: &AppHandle, result: PopupResult) {
     let state = app.state::<crate::state::AppState>();
     if state.popup.take().is_none() {
         return;
     }
+    let phase = match result.tone {
+        PopupTone::Success => "success",
+        PopupTone::Notice => "notice",
+        PopupTone::Error => "error",
+    };
     let _ = app.emit_to(
         "popup",
         "popup:phase",
         PopupPhasePayload {
-            phase: if success { "success" } else { "error" },
+            phase,
+            result: Some(result),
         },
     );
-    tokio::time::sleep(Duration::from_millis(1100)).await;
+    tokio::time::sleep(Duration::from_millis(5000)).await;
     let _ = app.emit_to("popup", "popup:dismiss", ());
     tokio::time::sleep(Duration::from_millis(180)).await;
     if let Some(window) = app.get_webview_window("popup") {

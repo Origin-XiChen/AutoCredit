@@ -1,18 +1,19 @@
 import { StrictMode, useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
-import type { PopupData } from '@shared/types'
+import type { PopupData, PopupResult } from '@shared/types'
 import { installTauriApi } from './tauri-api'
-import { IconCheck, IconX } from './ui'
+import { IconCheck, IconX, STATUS_META } from './ui'
 import './popup.css'
 
 installTauriApi()
 
-type Phase = 'countdown' | 'running' | 'success' | 'error'
+type Phase = 'countdown' | 'running' | 'success' | 'notice' | 'error'
 
 const TITLES: Record<Phase, string> = {
   countdown: '即将为以下程序签到',
   running: '正在签到…',
   success: '签到完成',
+  notice: '签到提醒',
   error: '签到未完成',
 }
 
@@ -22,6 +23,8 @@ function hintFor(phase: Phase, seconds: number): string {
       return '正在依次签到，完成后会自动关闭提醒'
     case 'success':
       return '今日签到已完成，提醒即将关闭'
+    case 'notice':
+      return '部分程序暂不可签，提醒即将关闭'
     case 'error':
       return '请打开主界面查看详情'
     default:
@@ -32,12 +35,16 @@ function hintFor(phase: Phase, seconds: number): string {
 export default function PopupApp() {
   const [data, setData] = useState<PopupData | null>(null)
   const [phase, setPhase] = useState<Phase>('countdown')
+  const [result, setResult] = useState<PopupResult | null>(null)
   const [closing, setClosing] = useState(false)
 
   useEffect(() => {
     void window.autoCredit.getPopupData().then(setData)
     const offDismiss = window.autoCredit.onPopupDismiss(() => setClosing(true))
-    const offPhase = window.autoCredit.onPopupPhase?.((payload) => setPhase(payload.phase))
+    const offPhase = window.autoCredit.onPopupPhase?.((payload) => {
+      setPhase(payload.phase)
+      if (payload.result) setResult(payload.result)
+    })
     return () => {
       offDismiss()
       offPhase?.()
@@ -56,13 +63,21 @@ export default function PopupApp() {
     <div className={`popup-card ${phase}${closing ? ' closing' : ''}`}>
       <div className="popup-content">
         <h1>{TITLES[phase]}</h1>
-        <p className="popup-hint">{hintFor(phase, data.seconds)}</p>
+        <p className="popup-hint">{result?.summary ?? hintFor(phase, data.seconds)}</p>
         <ul className="popup-list">
-          {data.apps.map((app) => (
-            <li key={app.id}>
-              <span>{app.name}</span>
-            </li>
-          ))}
+          {data.apps.map((app) => {
+            const item = result?.items.find((entry) => entry.id === app.id)
+            return (
+              <li key={app.id}>
+                <span>{app.name}</span>
+                {item && (
+                  <em className={`popup-result tone-${STATUS_META[item.status].tone}`}>
+                    {STATUS_META[item.status].label}
+                  </em>
+                )}
+              </li>
+            )
+          })}
         </ul>
       </div>
 
@@ -96,6 +111,10 @@ export default function PopupApp() {
               <span />
               <span />
             </span>
+          </span>
+        ) : phase === 'notice' ? (
+          <span className="status-ring status-notice">
+            <span className="notice-glyph">!</span>
           </span>
         ) : (
           <span className={`status-ring ${phase === 'success' ? 'status-success' : 'status-error'}`}>

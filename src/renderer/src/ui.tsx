@@ -147,6 +147,7 @@ export const STATUS_META: Record<RunStatus, { label: string; tone: string }> = {
   'needs-auth': { label: '需重新登录', tone: 'orange' },
   'needs-setup': { label: '待配置', tone: 'gray' },
   unavailable: { label: '暂不可领', tone: 'gray' },
+  inactive: { label: '不在活动期', tone: 'orange' },
 }
 
 export function StatusPill({ status }: { status: RunStatus }) {
@@ -242,7 +243,10 @@ export function checkedInCount(state: BootstrapState): number {
 
 export function enabledCount(state: BootstrapState): number {
   return visibleAppIds(state.settings).filter(
-    (id) => state.apps[id].enabled && state.runtime[id].status !== 'unavailable',
+    (id) =>
+      state.apps[id].enabled &&
+      state.runtime[id].status !== 'unavailable' &&
+      state.runtime[id].status !== 'inactive',
   ).length
 }
 

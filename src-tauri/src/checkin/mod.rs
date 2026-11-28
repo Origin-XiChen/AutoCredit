@@ -35,6 +35,22 @@ pub struct Readiness {
     pub status: Option<RunStatus>,
 }
 
+/// 判断接口返回是否表示“不在活动时间 / 活动未开放”，这类情况只作为提醒。
+pub fn is_inactive_message(message: &str) -> bool {
+    const KEYS: [&str; 8] = [
+        "不在活动",
+        "活动期",
+        "活动时间",
+        "活动未开始",
+        "活动已结束",
+        "未到活动",
+        "not in activity",
+        "activity not",
+    ];
+    let lower = message.to_lowercase();
+    KEYS.iter().any(|key| lower.contains(&key.to_lowercase()))
+}
+
 #[derive(Clone, Debug, Default)]
 pub struct AdapterContext {
     pub pat: String,

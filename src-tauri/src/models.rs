@@ -50,6 +50,7 @@ pub enum RunStatus {
     NeedsAuth,
     NeedsSetup,
     Unavailable,
+    Inactive,
 }
 
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug, Default)]
@@ -326,6 +327,32 @@ pub struct PopupApp {
 pub struct PopupData {
     pub apps: Vec<PopupApp>,
     pub seconds: u64,
+}
+
+#[derive(Serialize, Clone, Copy, Debug, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum PopupTone {
+    Success,
+    Notice,
+    Error,
+}
+
+#[derive(Serialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct PopupResultItem {
+    pub id: AppId,
+    pub name: String,
+    pub status: RunStatus,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub credits: Option<i64>,
+}
+
+#[derive(Serialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct PopupResult {
+    pub tone: PopupTone,
+    pub summary: String,
+    pub items: Vec<PopupResultItem>,
 }
 
 #[derive(Serialize, Clone, Debug)]

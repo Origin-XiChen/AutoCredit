@@ -12,6 +12,7 @@ export type RunStatus =
   | 'needs-auth'
   | 'needs-setup'
   | 'unavailable'
+  | 'inactive'
 
 export type LogLevel = 'info' | 'success' | 'warn' | 'error'
 
@@ -112,8 +113,24 @@ export interface PopupData {
   seconds: number
 }
 
+export type PopupTone = 'success' | 'notice' | 'error'
+
+export interface PopupResultItem {
+  id: AppId
+  name: string
+  status: RunStatus
+  credits?: number
+}
+
+export interface PopupResult {
+  tone: PopupTone
+  summary: string
+  items: PopupResultItem[]
+}
+
 export interface PopupPhasePayload {
-  phase: 'running' | 'success' | 'error'
+  phase: 'running' | 'success' | 'notice' | 'error'
+  result?: PopupResult
 }
 
 export interface DetectResult {

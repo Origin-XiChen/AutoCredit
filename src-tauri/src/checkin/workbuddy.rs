@@ -243,7 +243,11 @@ impl WorkBuddyAdapter {
         if !status.ok {
             return Ok(ProbeResult {
                 checked_in: false,
-                status: RunStatus::Failed,
+                status: if super::is_inactive_message(&status.message) {
+                    RunStatus::Inactive
+                } else {
+                    RunStatus::Failed
+                },
                 message: status.message,
                 credits: None,
             });
@@ -298,6 +302,13 @@ impl WorkBuddyAdapter {
                 credits: status.credits,
             });
         }
+        if !status.ok && super::is_inactive_message(&status.message) {
+            return Ok(Outcome {
+                status: RunStatus::Inactive,
+                message: status.message,
+                credits: None,
+            });
+        }
 
         let response = request(
             reqwest::Method::POST,
@@ -341,7 +352,11 @@ impl WorkBuddyAdapter {
                 || body.get("ret").and_then(Value::as_i64) == Some(0));
         if !success {
             return Ok(Outcome {
-                status: RunStatus::Failed,
+                status: if super::is_inactive_message(&message) {
+                    RunStatus::Inactive
+                } else {
+                    RunStatus::Failed
+                },
                 message: if message.is_empty() {
                     format!("WorkBuddy 签到失败（HTTP {}）", response.status)
                 } else {

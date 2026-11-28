@@ -217,8 +217,77 @@ body {
   background: #30d158;
 }
 
+.popup-card.notice .popup-list li::before {
+  background: #ff9f0a;
+}
+
 .popup-card.error .popup-list li::before {
   background: #ff453a;
+}
+
+.popup-list li > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.popup-result {
+  margin-left: auto;
+  flex: none;
+  font-style: normal;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: rgba(60, 60, 67, 0.45);
+}
+
+.popup-result.tone-green {
+  color: #248a3d;
+}
+
+.popup-result.tone-red {
+  color: #d70015;
+}
+
+.popup-result.tone-orange {
+  color: #b25000;
+}
+
+.popup-result.tone-blue {
+  color: #007aff;
+}
+
+@media (prefers-color-scheme: dark) {
+  .popup-result {
+    color: rgba(235, 235, 245, 0.45);
+  }
+
+  .popup-result.tone-green {
+    color: #30d158;
+  }
+
+  .popup-result.tone-red {
+    color: #ff6961;
+  }
+
+  .popup-result.tone-orange {
+    color: #ff9f0a;
+  }
+
+  .popup-result.tone-blue {
+    color: #0a84ff;
+  }
+}
+
+.status-notice {
+  border-color: rgba(255, 159, 10, 0.38);
+  background: rgba(255, 159, 10, 0.1);
+  color: #ff9f0a;
+}
+
+.notice-glyph {
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1;
 }
 
 @keyframes dotPulse {
