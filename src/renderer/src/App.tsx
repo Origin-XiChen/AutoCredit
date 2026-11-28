@@ -25,8 +25,9 @@ export default function App() {
   const [manualBusy, setManualBusy] = useState<AppId | 'all' | null>(null)
   const [detecting, setDetecting] = useState<AppId | null>(null)
   const [probing, setProbing] = useState(false)
-  const [updateReady, setUpdateReady] = useState<UpdateStatus | null>(null)
+  const [updateNotice, setUpdateNotice] = useState<UpdateStatus | null>(null)
   const toastId = useRef(0)
+  const dismissedUpdate = useRef<string | null>(null)
 
   const networkOnline = state?.network?.online ?? true
   const failedCount = state
@@ -68,7 +69,9 @@ export default function App() {
       setLogs((previous) => [entry, ...previous].slice(0, 2000))
     })
     const offUpdate = window.autoCredit.onUpdateStatus((status) => {
-      if (status.phase === 'ready') setUpdateReady(status)
+      if (status.phase !== 'available' && status.phase !== 'ready') return
+      if (!status.version || dismissedUpdate.current === status.version) return
+      setUpdateNotice(status)
     })
     const offAbout = window.autoCredit.onOpenSettingsAbout(() => {
       setPage('settings')
@@ -105,6 +108,16 @@ export default function App() {
     toastId.current += 1
     setToast({ id: toastId.current, text, tone })
   }
+
+  const dismissUpdate = (): void => {
+    if (updateNotice?.version) dismissedUpdate.current = updateNotice.version
+    setUpdateNotice(null)
+  }
+
+  const updateNotes = (updateNotice?.notes ?? '')
+    .split(/\r?\n/)
+    .map((line) => line.replace(/^#{1,6}\s*/, '').replace(/^[-*•]\s*/, '').trim())
+    .filter((line) => line.length > 0)
 
   const toggleMaster = async (next: boolean): Promise<void> => {
     setMasterBusy(true)
@@ -344,25 +357,38 @@ export default function App() {
         </div>
       </div>
 
-      {updateReady && (
-        <div className="modal-backdrop" role="presentation" onClick={() => setUpdateReady(null)}>
+      {updateNotice && (
+        <div className="modal-backdrop" role="presentation" onClick={dismissUpdate}>
           <div
-            className="modal-card"
+            className="modal-card update-announce"
             role="dialog"
             aria-modal="true"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="modal-mark">
-              <IconCheck />
-            </div>
-            <h2>新版本已就绪</h2>
-            <p>AutoCredit {updateReady.version} 已下载，重启应用后完成安装。</p>
+            <span className="eyebrow">版本公告</span>
+            <h2>AutoCredit {updateNotice.version}</h2>
+            <p className="update-hint">
+              {updateNotice.phase === 'ready'
+                ? '新版本已下载完成，重启应用即可完成安装。'
+                : '发现新版本，正在后台下载…'}
+            </p>
+            {updateNotes.length > 0 && (
+              <ul className="update-notes">
+                {updateNotes.map((line, index) => (
+                  <li key={index}>{line}</li>
+                ))}
+              </ul>
+            )}
             <div className="modal-actions">
-              <button className="btn ghost" onClick={() => setUpdateReady(null)}>
+              <button className="btn ghost" onClick={dismissUpdate}>
                 稍后
               </button>
-              <button className="btn primary" onClick={() => void window.autoCredit.installUpdate()}>
-                立即重启
+              <button
+                className="btn primary"
+                disabled={updateNotice.phase !== 'ready'}
+                onClick={() => void window.autoCredit.installUpdate()}
+              >
+                {updateNotice.phase === 'ready' ? '立即重启更新' : '下载中…'}
               </button>
             </div>
           </div>

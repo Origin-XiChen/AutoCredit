@@ -60,6 +60,13 @@ pub fn run() {
             scheduler::start(app.handle().clone());
             network::start(app.handle().clone());
 
+            // 每次启动后自动检查 GitHub 上的新版本，发现更新时由前端弹出公告。
+            let update_handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                tokio::time::sleep(std::time::Duration::from_secs(6)).await;
+                commands::update_check(update_handle).await;
+            });
+
             apply_autostart(app.handle(), settings.auto_launch);
 
             let hidden = std::env::args().any(|arg| arg == "--hidden") && settings.start_minimized;

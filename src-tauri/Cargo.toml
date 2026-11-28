@@ -1,6 +1,6 @@
 [package]
 name = "autocredit"
-version = "1.2.1"
+version = "1.2.2"
 description = "Quiet daily check-in assistant for Trae CN, Qoder, Qoder CN and WorkBuddy"
 authors = ["XiChen"]
 edition = "2021"

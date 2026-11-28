@@ -443,6 +443,7 @@ pub async fn update_check(app: AppHandle) {
                 phase: UpdatePhase::Blocked,
                 message: "开发模式下不检查更新".into(),
                 version: None,
+                notes: None,
             },
         );
         return;
@@ -453,6 +454,7 @@ pub async fn update_check(app: AppHandle) {
             phase: UpdatePhase::Checking,
             message: "正在检查更新…".into(),
             version: None,
+            notes: None,
         },
     );
 
@@ -465,6 +467,7 @@ pub async fn update_check(app: AppHandle) {
                     phase: UpdatePhase::Error,
                     message: format!("更新器不可用：{error}"),
                     version: None,
+                    notes: None,
                 },
             );
             return;
@@ -474,12 +477,14 @@ pub async fn update_check(app: AppHandle) {
     match updater.check().await {
         Ok(Some(update)) => {
             let version = update.version.clone();
+            let notes = update.body.clone();
             let _ = app.emit(
                 "update:status",
                 UpdateStatus {
                     phase: UpdatePhase::Available,
                     message: format!("发现新版本 {version}，正在后台下载…"),
                     version: Some(version.clone()),
+                    notes: notes.clone(),
                 },
             );
             state
@@ -496,6 +501,7 @@ pub async fn update_check(app: AppHandle) {
                             phase: UpdatePhase::Ready,
                             message: format!("新版本 {version} 已下载，重启应用后完成安装"),
                             version: Some(version),
+                            notes,
                         },
                     );
                 }
@@ -506,6 +512,7 @@ pub async fn update_check(app: AppHandle) {
                             phase: UpdatePhase::Error,
                             message: format!("更新下载失败：{error}"),
                             version: None,
+                            notes: None,
                         },
                     );
                 }
@@ -519,6 +526,7 @@ pub async fn update_check(app: AppHandle) {
                     phase: UpdatePhase::Latest,
                     message: format!("当前已是最新版本（{version}）"),
                     version: Some(version),
+                    notes: None,
                 },
             );
         }
@@ -529,6 +537,7 @@ pub async fn update_check(app: AppHandle) {
                     phase: UpdatePhase::Error,
                     message: format!("检查更新失败：{error}"),
                     version: None,
+                    notes: None,
                 },
             );
         }

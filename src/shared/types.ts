@@ -147,6 +147,7 @@ export interface UpdateStatus {
   phase: UpdatePhase
   message: string
   version?: string
+  notes?: string
 }
 
 export interface AutoCreditApi {

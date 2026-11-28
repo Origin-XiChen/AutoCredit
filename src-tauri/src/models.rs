@@ -373,6 +373,9 @@ pub struct UpdateStatus {
     pub message: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub version: Option<String>,
+    /// 新版本公告内容，来自 GitHub Release 的 latest.json。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub notes: Option<String>,
 }
 
 pub fn now_iso() -> String {
