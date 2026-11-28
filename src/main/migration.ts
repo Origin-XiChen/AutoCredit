@@ -7,11 +7,11 @@ import { app, net } from 'electron'
 import type { UpdateStatus } from '@shared/types'
 import type { Logger } from './logger'
 
-const TARGET_VERSION = '1.2.0'
-const FILE_NAME = 'AutoCredit-Setup-1.2.0.exe'
+const TARGET_VERSION = '1.2.1'
+const FILE_NAME = 'AutoCredit-Setup-1.2.1.exe'
 const DOWNLOAD_URL =
-  'https://github.com/Origin-XiChen/AutoCredit/releases/download/v1.2.0/AutoCredit-Setup-1.2.0.exe'
-const SHA256 = '66b72eda51846ef340b0cfee32d38e67cbb8e65aa254868c750c58b60330d943'
+  'https://github.com/Origin-XiChen/AutoCredit/releases/download/v1.2.1/AutoCredit-Setup-1.2.1.exe'
+const SHA256 = '8601f6712724b4ac0a577fab0fe4d8de15aacc8030cb10cc8e8a11b696775909'
 
 let loggerRef: Logger | null = null
 let emit: (status: UpdateStatus) => void = () => {}
@@ -51,7 +51,7 @@ export function announceMigration(manual = false): boolean {
   emit({
     phase: 'migration',
     version: TARGET_VERSION,
-    message: `AutoCredit ${TARGET_VERSION} 预览版已发布：改用更轻量的新架构，功能与配置保持一致，可抢先体验。`,
+    message: `AutoCredit ${TARGET_VERSION} 正式版已发布：改用更轻量的新架构，功能与配置保持一致。`,
   })
   return true
 }
