@@ -69,7 +69,13 @@ export default function App() {
       setLogs((previous) => [entry, ...previous].slice(0, 2000))
     })
     const offUpdate = window.autoCredit.onUpdateStatus((status) => {
-      if (status.phase !== 'available' && status.phase !== 'ready') return
+      if (
+        status.phase !== 'available' &&
+        status.phase !== 'downloading' &&
+        status.phase !== 'ready'
+      ) {
+        return
+      }
       if (!status.version || dismissedUpdate.current === status.version) return
       setUpdateNotice(status)
     })
@@ -118,6 +124,12 @@ export default function App() {
     .split(/\r?\n/)
     .map((line) => line.replace(/^#{1,6}\s*/, '').replace(/^[-*•]\s*/, '').trim())
     .filter((line) => line.length > 0)
+
+  const updateProgress = !updateNotice
+    ? 0
+    : updateNotice.phase === 'ready'
+      ? 100
+      : Math.round(updateNotice.progress ?? 0)
 
   const toggleMaster = async (next: boolean): Promise<void> => {
     setMasterBusy(true)
@@ -370,8 +382,19 @@ export default function App() {
             <p className="update-hint">
               {updateNotice.phase === 'ready'
                 ? '新版本已下载完成，重启应用即可完成安装。'
-                : '发现新版本，正在后台下载…'}
+                : updateNotice.phase === 'downloading'
+                  ? `正在下载新版本… ${updateProgress}%`
+                  : '发现新版本，正在准备下载…'}
             </p>
+            <div
+              className={`update-progress${updateNotice.phase === 'ready' ? ' done' : ''}`}
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={updateProgress}
+            >
+              <span style={{ width: `${updateProgress}%` }} />
+            </div>
             {updateNotes.length > 0 && (
               <ul className="update-notes">
                 {updateNotes.map((line, index) => (

@@ -141,13 +141,21 @@ export interface AppInfo {
   isPackaged: boolean
 }
 
-export type UpdatePhase = 'checking' | 'latest' | 'available' | 'ready' | 'error' | 'blocked'
+export type UpdatePhase =
+  | 'checking'
+  | 'latest'
+  | 'available'
+  | 'downloading'
+  | 'ready'
+  | 'error'
+  | 'blocked'
 
 export interface UpdateStatus {
   phase: UpdatePhase
   message: string
   version?: string
   notes?: string
+  progress?: number
 }
 
 export interface AutoCreditApi {

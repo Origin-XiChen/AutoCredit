@@ -361,6 +361,7 @@ pub enum UpdatePhase {
     Checking,
     Latest,
     Available,
+    Downloading,
     Ready,
     Error,
     Blocked,
@@ -376,6 +377,9 @@ pub struct UpdateStatus {
     /// 新版本公告内容，来自 GitHub Release 的 latest.json。
     #[serde(skip_serializing_if = "Option::is_none")]
     pub notes: Option<String>,
+    /// 下载进度（0-100）。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub progress: Option<f64>,
 }
 
 pub fn now_iso() -> String {

@@ -702,6 +702,23 @@ export default function SettingsPage({
                     重启并安装
                   </button>
                 )}
+                {(updateStatus.phase === 'available' ||
+                  updateStatus.phase === 'downloading' ||
+                  updateStatus.phase === 'ready') && (
+                  <div
+                    className={`update-progress${updateStatus.phase === 'ready' ? ' done' : ''}`}
+                  >
+                    <span
+                      style={{
+                        width: `${
+                          updateStatus.phase === 'ready'
+                            ? 100
+                            : Math.round(updateStatus.progress ?? 0)
+                        }%`,
+                      }}
+                    />
+                  </div>
+                )}
               </div>
             )}
             <Row title="接收 dev 版本" description="开启后会同时检查预发布（dev / beta）版本；关闭时只接收正式版本。">

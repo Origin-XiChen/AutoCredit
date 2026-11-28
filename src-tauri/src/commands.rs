@@ -444,6 +444,7 @@ pub async fn update_check(app: AppHandle) {
                 message: "开发模式下不检查更新".into(),
                 version: None,
                 notes: None,
+                progress: None,
             },
         );
         return;
@@ -455,6 +456,7 @@ pub async fn update_check(app: AppHandle) {
             message: "正在检查更新…".into(),
             version: None,
             notes: None,
+            progress: None,
         },
     );
 
@@ -468,6 +470,7 @@ pub async fn update_check(app: AppHandle) {
                     message: format!("更新器不可用：{error}"),
                     version: None,
                     notes: None,
+                    progress: None,
                 },
             );
             return;
@@ -485,13 +488,47 @@ pub async fn update_check(app: AppHandle) {
                     message: format!("发现新版本 {version}，正在后台下载…"),
                     version: Some(version.clone()),
                     notes: notes.clone(),
+                    progress: Some(0.0),
                 },
             );
             state
                 .logger
                 .info(format!("发现新版本 {version}，正在后台下载"));
+
+            let progress_app = app.clone();
+            let progress_version = version.clone();
+            let progress_notes = notes.clone();
+            let mut downloaded: u64 = 0;
+            let mut last_percent: i32 = -1;
             match update
-                .download_and_install(|_, _| {}, || {})
+                .download_and_install(
+                    move |chunk_len, content_len| {
+                        downloaded += chunk_len as u64;
+                        let Some(total) = content_len else {
+                            return;
+                        };
+                        if total == 0 {
+                            return;
+                        }
+                        let percent = (downloaded as f64 / total as f64 * 100.0).min(100.0);
+                        let rounded = percent as i32;
+                        if rounded == last_percent {
+                            return;
+                        }
+                        last_percent = rounded;
+                        let _ = progress_app.emit(
+                            "update:status",
+                            UpdateStatus {
+                                phase: UpdatePhase::Downloading,
+                                message: format!("正在下载新版本 {progress_version}… {rounded}%"),
+                                version: Some(progress_version.clone()),
+                                notes: progress_notes.clone(),
+                                progress: Some(percent),
+                            },
+                        );
+                    },
+                    || {},
+                )
                 .await
             {
                 Ok(()) => {
@@ -502,6 +539,7 @@ pub async fn update_check(app: AppHandle) {
                             message: format!("新版本 {version} 已下载，重启应用后完成安装"),
                             version: Some(version),
                             notes,
+                            progress: Some(100.0),
                         },
                     );
                 }
@@ -513,6 +551,7 @@ pub async fn update_check(app: AppHandle) {
                             message: format!("更新下载失败：{error}"),
                             version: None,
                             notes: None,
+                            progress: None,
                         },
                     );
                 }
@@ -527,6 +566,7 @@ pub async fn update_check(app: AppHandle) {
                     message: format!("当前已是最新版本（{version}）"),
                     version: Some(version),
                     notes: None,
+                    progress: None,
                 },
             );
         }
@@ -538,6 +578,7 @@ pub async fn update_check(app: AppHandle) {
                     message: format!("检查更新失败：{error}"),
                     version: None,
                     notes: None,
+                    progress: None,
                 },
             );
         }
