@@ -51,6 +51,11 @@ pub fn run() {
             let state = AppState::new(store, logger, version.clone(), !cfg!(debug_assertions));
             app.manage(state);
 
+            #[cfg(target_os = "windows")]
+            if let Some(window) = app.get_webview_window("main") {
+                round_window_corners(&window);
+            }
+
             tray::create(app.handle())?;
             scheduler::start(app.handle().clone());
             network::start(app.handle().clone());
@@ -117,6 +122,25 @@ pub fn run() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running AutoCredit");
+}
+
+#[cfg(target_os = "windows")]
+fn round_window_corners(window: &tauri::WebviewWindow) {
+    use windows_sys::Win32::Graphics::Dwm::{
+        DwmSetWindowAttribute, DWMWA_WINDOW_CORNER_PREFERENCE, DWMWCP_ROUND,
+    };
+    let Ok(hwnd) = window.hwnd() else {
+        return;
+    };
+    let preference: u32 = DWMWCP_ROUND as u32;
+    unsafe {
+        DwmSetWindowAttribute(
+            hwnd.0,
+            DWMWA_WINDOW_CORNER_PREFERENCE as u32,
+            &preference as *const u32 as *const core::ffi::c_void,
+            std::mem::size_of::<u32>() as u32,
+        );
+    }
 }
 
 fn apply_autostart(app: &tauri::AppHandle, enabled: bool) {

@@ -99,14 +99,20 @@ a {
 
 .shell {
   height: 100%;
-  border-radius: 12px;
   background: var(--bg);
-  border: 1px solid var(--card-border);
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  box-shadow: none;
+  box-shadow:
+    inset 0 0 0 1px var(--card-border-strong),
+    inset 0 1px 0 rgba(255, 255, 255, 0.45);
   transition: background 0.25s ease;
+}
+
+[data-theme='dark'] .shell {
+  box-shadow:
+    inset 0 0 0 1px var(--card-border-strong),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 .titlebar {
