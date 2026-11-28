@@ -3,6 +3,7 @@ mod commands;
 mod fullscreen;
 mod logger;
 mod models;
+mod network;
 mod popup;
 mod scheduler;
 mod state;
@@ -52,6 +53,7 @@ pub fn run() {
 
             tray::create(app.handle())?;
             scheduler::start(app.handle().clone());
+            network::start(app.handle().clone());
 
             apply_autostart(app.handle(), settings.auto_launch);
 

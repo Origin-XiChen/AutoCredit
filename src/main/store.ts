@@ -1,4 +1,4 @@
-import { app, safeStorage } from 'electron'
+import { app, net, safeStorage } from 'electron'
 import { randomUUID } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -194,6 +194,7 @@ export class Store {
       dataDir: this.dataDir,
       logsDir: this.logsDir,
       isPackaged: app.isPackaged,
+      network: { online: net.isOnline() },
     }
   }
 }

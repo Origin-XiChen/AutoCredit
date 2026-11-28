@@ -7,7 +7,7 @@ use serde_json::Value;
 
 use crate::models::{
     app_meta, checkin_date_key, local_date_key, now_iso, AppConfig, AppId, AppRuntime,
-    BootstrapState, ConfigFile, GlobalSettings, RunStatus, APP_ORDER,
+    BootstrapState, ConfigFile, GlobalSettings, NetworkStatus, RunStatus, APP_ORDER,
 };
 
 pub struct Store {
@@ -160,6 +160,10 @@ impl Store {
             data_dir: self.data_dir.to_string_lossy().to_string(),
             logs_dir: self.logs_dir.to_string_lossy().to_string(),
             is_packaged,
+            network: NetworkStatus {
+                online: true,
+                checked_at: None,
+            },
         }
     }
 

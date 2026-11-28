@@ -28,6 +28,29 @@ export default function App() {
   const [updateReady, setUpdateReady] = useState<UpdateStatus | null>(null)
   const toastId = useRef(0)
 
+  const networkOnline = state?.network?.online ?? true
+  const failedCount = state
+    ? Object.values(state.runtime).filter((runtime) => runtime.status === 'failed').length
+    : 0
+  const statusTone = !state
+    ? ''
+    : !state.settings.masterEnabled
+      ? ''
+      : !networkOnline
+        ? ' offline'
+        : failedCount > 0
+          ? ' error'
+          : ' active'
+  const statusText = !state
+    ? '正在加载…'
+    : !state.settings.masterEnabled
+      ? '自动签到已暂停'
+      : !networkOnline
+        ? '网络已断开，联网后自动重试'
+        : failedCount > 0
+          ? `${failedCount} 个签到异常`
+          : '自动签到运行中'
+
   useEffect(() => {
     let active = true
     void Promise.all([window.autoCredit.getState(), window.autoCredit.getLogs()])
@@ -180,9 +203,9 @@ export default function App() {
             </button>
           </div>
           <div className="titlebar-title" data-tauri-drag-region>AutoCredit</div>
-          <div className={`titlebar-status${state?.settings.masterEnabled ? ' active' : ''}`} data-tauri-drag-region>
+          <div className={`titlebar-status${statusTone}`} data-tauri-drag-region>
             <i />
-            {state?.settings.masterEnabled ? '自动签到运行中' : '自动签到已暂停'}
+            {statusText}
           </div>
         </header>
 

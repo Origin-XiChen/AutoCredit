@@ -540,7 +540,7 @@ pub fn update_install(app: AppHandle) {
     app.restart();
 }
 
-fn emit_state(app: &AppHandle) {
+pub(crate) fn emit_state(app: &AppHandle) {
     let state = app.state::<AppState>();
     let _ = app.emit("state:update", state.bootstrap());
 }

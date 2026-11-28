@@ -76,6 +76,11 @@ export interface AppMeta {
   checkinResetHour?: number
 }
 
+export interface NetworkStatus {
+  online: boolean
+  checkedAt?: string
+}
+
 export interface BootstrapState {
   settings: GlobalSettings
   apps: Record<AppId, AppConfig>
@@ -86,6 +91,7 @@ export interface BootstrapState {
   dataDir: string
   logsDir: string
   isPackaged: boolean
+  network: NetworkStatus
 }
 
 export interface LogEntry {

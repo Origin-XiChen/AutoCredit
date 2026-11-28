@@ -279,6 +279,14 @@ pub fn visible_app_ids(settings: &GlobalSettings) -> Vec<AppId> {
         .collect()
 }
 
+#[derive(Serialize, Clone, Debug, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct NetworkStatus {
+    pub online: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub checked_at: Option<String>,
+}
+
 #[derive(Serialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct BootstrapState {
@@ -291,6 +299,7 @@ pub struct BootstrapState {
     pub data_dir: String,
     pub logs_dir: String,
     pub is_packaged: bool,
+    pub network: NetworkStatus,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

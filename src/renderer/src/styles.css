@@ -94,7 +94,7 @@ a {
 
 .window {
   height: 100%;
-  padding: 10px;
+  padding: 0;
 }
 
 .shell {
@@ -105,7 +105,7 @@ a {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.10);
+  box-shadow: none;
   transition: background 0.25s ease;
 }
 
@@ -210,6 +210,35 @@ a {
 
 .titlebar-status.active i {
   background: #34c759;
+}
+
+.titlebar-status.offline {
+  color: #c0392b;
+  background: rgba(255, 69, 58, 0.10);
+}
+
+.titlebar-status.offline i {
+  background: #ff453a;
+  animation: statusPulse 1.4s ease-in-out infinite;
+}
+
+.titlebar-status.error {
+  color: #b26a00;
+  background: rgba(255, 159, 10, 0.12);
+}
+
+.titlebar-status.error i {
+  background: #ff9f0a;
+}
+
+@keyframes statusPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
 }
 
 .layout {
