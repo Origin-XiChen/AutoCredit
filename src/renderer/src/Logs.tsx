@@ -7,7 +7,7 @@ interface LogsPageProps {
   logs: LogEntry[]
   developerMode: boolean
   onClear: () => void
-  onExport: () => void
+  onExport: () => void | Promise<void>
 }
 
 const LEVEL_LABEL: Record<LogLevel, string> = {
@@ -24,6 +24,7 @@ export default function LogsPage({ logs, developerMode, onClear, onExport }: Log
   const [appFilter, setAppFilter] = useState<AppId | 'all'>('all')
   const [levelFilter, setLevelFilter] = useState<LogLevel | 'all'>('all')
   const [confirmClear, setConfirmClear] = useState(false)
+  const [exporting, setExporting] = useState(false)
   const appIds = visibleAppIds({ developerMode })
 
   useEffect(() => {
@@ -35,6 +36,15 @@ export default function LogsPage({ logs, developerMode, onClear, onExport }: Log
     const timer = setTimeout(() => setConfirmClear(false), 3200)
     return () => clearTimeout(timer)
   }, [confirmClear])
+
+  const exportLogs = async (): Promise<void> => {
+    setExporting(true)
+    try {
+      await Promise.resolve(onExport())
+    } finally {
+      setExporting(false)
+    }
+  }
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase()
@@ -54,8 +64,19 @@ export default function LogsPage({ logs, developerMode, onClear, onExport }: Log
           <h1>日志</h1>
         </div>
         <div className="page-actions">
-          <button className="btn ghost" onClick={onExport} disabled={logs.length === 0}>
-            导出日志
+          <button
+            className="btn ghost"
+            onClick={() => void exportLogs()}
+            disabled={logs.length === 0 || exporting}
+          >
+            {exporting ? (
+              <>
+                <span className="spinner tiny" />
+                导出中…
+              </>
+            ) : (
+              '导出日志'
+            )}
           </button>
           <button
             className={`btn ${confirmClear ? 'danger' : 'ghost'}`}

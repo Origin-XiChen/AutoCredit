@@ -30,14 +30,14 @@ interface SettingsPageProps {
   onTabChange: (tab: SettingsTab) => void
   focusApp?: AppId
   onFocusHandled: () => void
-  onToggleMaster: (next: boolean) => void
+  onToggleMaster: (next: boolean) => void | Promise<void>
   masterBusy: boolean
-  onUpdateSettings: (patch: Partial<GlobalSettings>) => void
-  onUpdateApp: (id: AppId, patch: Partial<AppConfig>) => void
+  onUpdateSettings: (patch: Partial<GlobalSettings>) => void | Promise<void>
+  onUpdateApp: (id: AppId, patch: Partial<AppConfig>) => void | Promise<void>
   onDetect: (id: AppId) => void
   detecting: AppId | null
   onSavePat: (id: AppId, pat: string) => Promise<SavePatResult>
-  onClearPat: (id: AppId) => void
+  onClearPat: (id: AppId) => void | Promise<void>
   onProbeAll: () => void
   probing: boolean
   onExportLogs: () => void
@@ -99,12 +99,13 @@ function PatEditor({
   id: AppId
   saved: boolean
   onSave: (id: AppId, pat: string) => Promise<SavePatResult>
-  onClear: (id: AppId) => void
+  onClear: (id: AppId) => void | Promise<void>
   onDetect: (id: AppId) => void
   detecting: AppId | null
 }) {
   const [draft, setDraft] = useState('')
   const [saving, setSaving] = useState(false)
+  const [clearing, setClearing] = useState(false)
   const [error, setError] = useState<string | undefined>()
   const meta = APP_META[id]
 
@@ -129,6 +130,15 @@ function PatEditor({
       }
     } finally {
       setSaving(false)
+    }
+  }
+
+  const clear = async (): Promise<void> => {
+    setClearing(true)
+    try {
+      await Promise.resolve(onClear(id))
+    } finally {
+      setClearing(false)
     }
   }
 
@@ -164,12 +174,19 @@ function PatEditor({
           {saving ? '验证中…' : '保存'}
         </button>
         {saved && (
-          <button className="btn ghost danger-text" onClick={() => onClear(id)}>
-            清除
+          <button className="btn ghost danger-text" onClick={() => void clear()} disabled={clearing}>
+            {clearing ? '清除中…' : '清除'}
           </button>
         )}
         <button className="btn ghost" onClick={() => onDetect(id)} disabled={detecting === id}>
-          {detecting === id ? '检测中…' : '检测'}
+          {detecting === id ? (
+            <>
+              <span className="spinner tiny" />
+              检测中
+            </>
+          ) : (
+            '检测'
+          )}
         </button>
       </div>
       {error && <p className="pat-error">{error}</p>}
@@ -319,7 +336,7 @@ function PathEditor({
             disabled={browsing === field.key}
           >
             <IconFolder />
-            浏览
+            {browsing === field.key ? '选择中…' : '浏览'}
           </button>
         </div>
       ))}
@@ -576,7 +593,14 @@ export default function SettingsPage({
                       {meta.accountHint}
                     </span>
                     <button className="btn ghost sm" onClick={() => onDetect(id)} disabled={detecting === id}>
-                      {detecting === id ? '检测中…' : '检测登录态'}
+                      {detecting === id ? (
+                        <>
+                          <span className="spinner tiny" />
+                          检测中
+                        </>
+                      ) : (
+                        '检测登录态'
+                      )}
                     </button>
                   </div>
                 ) : (

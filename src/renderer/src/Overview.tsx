@@ -21,9 +21,9 @@ import {
 
 interface OverviewProps {
   state: BootstrapState
-  onToggleMaster: (next: boolean) => void
+  onToggleMaster: (next: boolean) => void | Promise<void>
   masterBusy: boolean
-  onToggleApp: (id: AppId, next: boolean) => void
+  onToggleApp: (id: AppId, next: boolean) => void | Promise<void>
   onRunNow: (id?: AppId) => void
   manualBusy: AppId | 'all' | null
   onDetect: (id: AppId) => void
@@ -96,8 +96,17 @@ export default function Overview({
             onClick={() => onRunNow()}
             disabled={manualBusy !== null || enabled === 0}
           >
-            <IconBolt />
-            {manualBusy === 'all' ? '签到中…' : '全部签到'}
+            {manualBusy === 'all' ? (
+              <>
+                <span className="spinner tiny" />
+                签到中…
+              </>
+            ) : (
+              <>
+                <IconBolt />
+                全部签到
+              </>
+            )}
           </button>
         </div>
       </div>
@@ -202,7 +211,14 @@ export default function Overview({
                   onClick={() => onDetect(id)}
                   disabled={detecting === id}
                 >
-                  {detecting === id ? '检测中…' : '检测'}
+                  {detecting === id ? (
+                    <>
+                      <span className="spinner tiny" />
+                      检测中
+                    </>
+                  ) : (
+                    '检测'
+                  )}
                 </button>
                 {needsPat && (
                   <button className="btn link sm" onClick={() => onOpenSettings('apps', id)}>

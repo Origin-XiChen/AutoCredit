@@ -4,6 +4,7 @@ import type { SettingsTab } from './Settings'
 import SettingsPage from './Settings'
 import LogsPage from './Logs'
 import Overview from './Overview'
+import Markdown from './Markdown'
 import { IconHome, IconLogs, IconSettings, IconCheck } from './ui'
 
 type Page = 'overview' | 'logs' | 'settings'
@@ -119,11 +120,6 @@ export default function App() {
     if (updateNotice?.version) dismissedUpdate.current = updateNotice.version
     setUpdateNotice(null)
   }
-
-  const updateNotes = (updateNotice?.notes ?? '')
-    .split(/\r?\n/)
-    .map((line) => line.replace(/^#{1,6}\s*/, '').replace(/^[-*•]\s*/, '').trim())
-    .filter((line) => line.length > 0)
 
   const updateProgress = !updateNotice
     ? 0
@@ -273,8 +269,9 @@ export default function App() {
                   role="switch"
                   aria-checked={Boolean(state?.settings.masterEnabled)}
                   aria-label="自动签到主开关"
-                  className={`master-switch${state?.settings.masterEnabled ? ' on' : ''}`}
+                  className={`master-switch${state?.settings.masterEnabled ? ' on' : ''}${masterBusy ? ' pending' : ''}`}
                   disabled={!state || masterBusy}
+                  aria-busy={masterBusy || undefined}
                   onClick={() => toggleMaster(!state?.settings.masterEnabled)}
                 >
                   <i />
@@ -395,12 +392,10 @@ export default function App() {
             >
               <span style={{ width: `${updateProgress}%` }} />
             </div>
-            {updateNotes.length > 0 && (
-              <ul className="update-notes">
-                {updateNotes.map((line, index) => (
-                  <li key={index}>{line}</li>
-                ))}
-              </ul>
+            {updateNotice.notes && (
+              <div className="update-notes">
+                <Markdown source={updateNotice.notes} />
+              </div>
             )}
             <div className="modal-actions">
               <button className="btn ghost" onClick={dismissUpdate}>

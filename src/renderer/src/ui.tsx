@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import type { AppId, BootstrapState, RunStatus } from '@shared/types'
 import { APP_META, visibleAppIds } from '@shared/constants'
 
@@ -114,22 +115,59 @@ export function Switch({
   label,
 }: {
   checked: boolean
-  onChange: (next: boolean) => void
+  onChange: (next: boolean) => void | Promise<void>
   disabled?: boolean
   large?: boolean
   label?: string
 }) {
+  const [pendingTarget, setPendingTarget] = useState<boolean | null>(null)
+  const [showPending, setShowPending] = useState(false)
+  const pending = pendingTarget !== null && pendingTarget !== checked
+
+  useEffect(() => {
+    if (pendingTarget !== null && pendingTarget === checked) setPendingTarget(null)
+  }, [checked, pendingTarget])
+
+  useEffect(() => {
+    if (pendingTarget === null) return undefined
+    const timer = setTimeout(() => setPendingTarget(null), 5000)
+    return () => clearTimeout(timer)
+  }, [pendingTarget])
+
+  // 快速完成的开关不闪黄，超过 120ms 仍未完成才显示待处理状态。
+  useEffect(() => {
+    if (!pending) return undefined
+    const timer = setTimeout(() => setShowPending(true), 120)
+    return () => clearTimeout(timer)
+  }, [pending])
+
+  const toggle = (): void => {
+    if (disabled || pending) return
+    const next = !checked
+    let result: void | Promise<void>
+    try {
+      result = onChange(next)
+    } catch {
+      return
+    }
+    if (result && typeof (result as Promise<void>).then === 'function') {
+      setPendingTarget(next)
+      void (result as Promise<void>).catch(() => setPendingTarget(null))
+    }
+  }
+
   return (
     <button
       type="button"
       role="switch"
-      aria-checked={checked}
+      aria-checked={pendingTarget ?? checked}
+      aria-busy={pending || undefined}
       aria-label={label ?? '开关'}
-      className={`switch${checked ? ' on' : ''}${large ? ' large' : ''}`}
+      className={`switch${checked ? ' on' : ''}${large ? ' large' : ''}${showPending ? ' pending' : ''}`}
       disabled={disabled}
       onClick={(event) => {
         event.stopPropagation()
-        onChange(!checked)
+        toggle()
       }}
     >
       <span className="switch-knob" />

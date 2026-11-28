@@ -417,6 +417,19 @@ a {
   transform: translateX(16px);
 }
 
+.master-switch.pending {
+  background: #ff9f0a;
+  animation: switchPending 1.4s ease-in-out infinite;
+}
+
+.master-switch.pending i {
+  transform: translateX(8px);
+}
+
+.master-switch.pending:disabled {
+  opacity: 1;
+}
+
 .master-switch:disabled {
   opacity: 0.55;
   cursor: not-allowed;
@@ -1821,9 +1834,36 @@ a {
   transform: translateX(21px);
 }
 
+.switch.pending {
+  background: #ff9f0a;
+  animation: switchPending 1.4s ease-in-out infinite;
+}
+
+.switch.pending .switch-knob {
+  transform: translateX(8.5px);
+}
+
+.switch.large.pending .switch-knob {
+  transform: translateX(10.5px);
+}
+
+@keyframes switchPending {
+  0%,
+  100% {
+    background: #ff9f0a;
+  }
+  50% {
+    background: #ffc043;
+  }
+}
+
 .switch:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.switch.pending:disabled {
+  opacity: 1;
 }
 
 .switch:focus-visible {
@@ -1915,33 +1955,79 @@ a {
 .update-notes {
   margin: 12px 0 0;
   padding: 10px 12px;
-  list-style: none;
   border-radius: 9px;
   background: rgba(120, 120, 128, 0.09);
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-  max-height: 190px;
+  max-height: 220px;
   overflow-y: auto;
 }
 
-.update-notes li {
-  position: relative;
-  padding-left: 12px;
+.markdown {
   font-size: 12px;
-  line-height: 1.55;
+  line-height: 1.6;
   color: var(--text-2);
 }
 
-.update-notes li::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 6px;
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: var(--accent);
+.markdown > :first-child {
+  margin-top: 0;
+}
+
+.markdown > :last-child {
+  margin-bottom: 0;
+}
+
+.markdown h3,
+.markdown h4,
+.markdown h5,
+.markdown h6 {
+  margin: 12px 0 6px;
+  font-size: 12.5px;
+  font-weight: 650;
+  color: var(--text);
+}
+
+.markdown p {
+  margin: 6px 0;
+}
+
+.markdown ul,
+.markdown ol {
+  margin: 6px 0;
+  padding-left: 18px;
+}
+
+.markdown li {
+  margin: 3px 0;
+}
+
+.markdown code {
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: rgba(120, 120, 128, 0.16);
+  font-family: 'Cascadia Code', Consolas, monospace;
+  font-size: 11px;
+}
+
+.markdown blockquote {
+  margin: 6px 0;
+  padding-left: 10px;
+  border-left: 3px solid var(--card-border-strong);
+  color: var(--text-3);
+}
+
+.markdown hr {
+  margin: 10px 0;
+  border: none;
+  border-top: 1px solid var(--card-border);
+}
+
+.markdown .md-link {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
 }
 
 .update-announce .modal-actions {
