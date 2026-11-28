@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "AutoCredit",
-  "version": "1.2.4",
+  "version": "1.2.5",
   "identifier": "com.xichen.autocredit",
   "build": {
     "beforeDevCommand": "npm run dev:tauri",
@@ -35,7 +35,10 @@
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEVGRTJCNEI1NDQ3NTRDMTIKUldRU1RIVkV0YlRpNzFZWEdJUHkrSmdPbldFM05QK0xqTGdDZXZ0dWoyVHo1V2dtQ1llTHczS1QK",
       "endpoints": [
         "https://github.com/Origin-XiChen/AutoCredit/releases/latest/download/latest.json"
-      ]
+      ],
+      "windows": {
+        "installMode": "quiet"
+      }
     }
   },
   "bundle": {
